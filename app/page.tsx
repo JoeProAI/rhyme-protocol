@@ -28,10 +28,9 @@ const STUDIO_TOOLS = [
   {
     href: '/studio/video',
     title: 'VIDEO_GEN',
-    description: 'Create cinematic music videos with GPT-Image-1.5 and Luma Ray-2. Scene-by-scene generation.',
+    description: 'Generate cinematic videos with Luma Ray-2. Simple prompts to stunning visuals.',
     iconPath: 'M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z',
-    available: false,
-    comingSoon: true,
+    available: true,
   },
 ];
 
@@ -72,11 +71,6 @@ export default function Home() {
                         <path d={tool.iconPath} />
                       </svg>
                     </div>
-                    {tool.comingSoon && (
-                      <span className="px-2 py-1 text-xs font-mono tracking-wider bg-surface border border-border-subtle text-muted">
-                        SOON
-                      </span>
-                    )}
                   </div>
                   <h2 className="text-xl font-display tracking-tight mb-2">
                     <span className={tool.available ? 'text-text' : 'text-text/50'}>{tool.title.split('_')[0]}</span>
