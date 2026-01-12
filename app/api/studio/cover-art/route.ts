@@ -37,8 +37,8 @@ const MOOD_PROMPTS: Record<string, string> = {
 
 const SIZE_MAP: Record<string, string> = {
   '1:1': '1024x1024',
-  '16:9': '1792x1024',
-  '9:16': '1024x1792',
+  '16:9': '1536x1024',
+  '9:16': '1024x1536',
 };
 
 export async function POST(request: NextRequest) {
@@ -64,12 +64,11 @@ export async function POST(request: NextRequest) {
     const openai = getOpenAI();
     
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt: fullPrompt,
       n: 1,
-      size: size as '1024x1024' | '1792x1024' | '1024x1792',
-      quality: 'hd',
-      style: 'vivid',
+      size: size as '1024x1024' | '1536x1024' | '1024x1536',
+      quality: 'high',
     });
 
     if (!response.data || response.data.length === 0) {
