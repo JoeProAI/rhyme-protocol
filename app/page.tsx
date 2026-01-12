@@ -14,14 +14,14 @@ const STUDIO_TOOLS = [
   {
     href: '/studio/lyrics',
     title: 'LYRIC_LAB',
-    description: 'Write bars with GPT-4o and Grok. Get rhyme suggestions, continue verses, or generate fresh content.',
+    description: 'Write bars with GPT 5.2 and Grok 4.1. Get rhyme suggestions, continue verses, or generate fresh content.',
     iconPath: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z',
     available: true,
   },
   {
     href: '/studio/cover-art',
     title: 'COVER_ART',
-    description: 'Generate professional album covers and single artwork with DALL-E 3. Multiple styles and moods.',
+    description: 'Generate professional album covers and single artwork with GPT-Image-1.5. Multiple styles and moods.',
     iconPath: 'M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z',
     available: true,
   },
@@ -128,7 +128,7 @@ export default function Home() {
             <span className="text-border-subtle">|</span>
             <span>Grok 4.1</span>
             <span className="text-border-subtle">|</span>
-            <span>DALL-E 3</span>
+            <span>GPT-Image-1.5</span>
             <span className="text-border-subtle">|</span>
             <span>Luma Ray-2</span>
           </div>
