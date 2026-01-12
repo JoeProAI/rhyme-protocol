@@ -72,11 +72,15 @@ export async function POST(request: NextRequest) {
       style: 'vivid',
     });
 
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No image data in response');
+    }
+
     const imageUrl = response.data[0]?.url;
     const revisedPrompt = response.data[0]?.revised_prompt;
 
     if (!imageUrl) {
-      throw new Error('No image generated');
+      throw new Error('No image URL generated');
     }
 
     return NextResponse.json({
