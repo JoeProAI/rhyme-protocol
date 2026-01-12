@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { writeFile } from 'fs/promises'
-import { join } from 'path'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 /**
  * Generate the main OG image for JoePro.ai
@@ -29,6 +32,7 @@ Style: Modern SaaS landing page hero image, 16:9 aspect ratio, high contrast, pr
 
     console.log('[OG Gen] Generating premium OG image...')
 
+    const openai = getOpenAIClient()
     const response = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,

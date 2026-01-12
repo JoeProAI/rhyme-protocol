@@ -5,18 +5,19 @@ import OpenAI from 'openai'
 export const maxDuration = 60 // 60 seconds max
 export const dynamic = 'force-dynamic'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 /**
  * Generate a blog header image using GPT-Image-1
  */
 export async function POST(req: NextRequest) {
   try {
-    // Check API key first
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('[Blog Image] OPENAI_API_KEY not set')
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
-    }
+    const openai = getOpenAIClient()
     
     const { prompt, style = 'tech' } = await req.json()
     
