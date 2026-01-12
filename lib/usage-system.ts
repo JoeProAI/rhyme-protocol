@@ -9,8 +9,8 @@ import { redisGet, redisSet, redisIncr, redisIncrBy, isRedisConfigured } from '.
 // Budget: ~$100/month = ~$3.33/day across all free users
 export const FREE_LIMITS = {
   lyric_generations: 5,   // Lyric generations per day (~$0.02 each = $0.10/day)
-  cover_art: 3,           // Cover art per day (~$0.04 each = $0.12/day)
-  video_generations: 0,   // Video gen DISABLED for free (too expensive, coming soon)
+  cover_art: 3,           // Cover art per day (~$0.13 each = $0.39/day)
+  video_generations: 2,   // Video gen per day (~$0.71 each = $1.42/day)
   chat_messages: 10,      // Chat messages per day
   image_edits: 5,         // Image edits per day
   agent_calls: 5,         // Agent API calls per day
