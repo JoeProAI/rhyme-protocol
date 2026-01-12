@@ -31,9 +31,9 @@ export default function CoverArtStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editPrompt, setEditPrompt] = useState('');
+  const [editCount, setEditCount] = useState(0);
   const [result, setResult] = useState<{ imageUrl: string; revisedPrompt?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -59,6 +59,7 @@ export default function CoverArtStudio() {
         imageUrl: data.imageUrl,
         revisedPrompt: data.revisedPrompt,
       });
+      setEditCount(0);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -94,8 +95,10 @@ export default function CoverArtStudio() {
     }
   };
 
+  const MAX_EDITS = 3;
+
   const handleEdit = async () => {
-    if (!result?.imageUrl || !editPrompt.trim()) return;
+    if (!result?.imageUrl || !editPrompt.trim() || editCount >= MAX_EDITS) return;
     
     setIsEditing(true);
     setError(null);
@@ -122,6 +125,7 @@ export default function CoverArtStudio() {
           revisedPrompt: data.result,
         });
         setEditPrompt('');
+        setEditCount(prev => prev + 1);
       } else {
         throw new Error('No edited image returned');
       }
@@ -294,22 +298,35 @@ export default function CoverArtStudio() {
                 </button>
                 
                 <div className="border border-border-subtle p-4 space-y-3">
-                  <label className="block text-sm font-medium text-text">
-                    Edit with AI
-                  </label>
-                  <textarea
-                    value={editPrompt}
-                    onChange={(e) => setEditPrompt(e.target.value)}
-                    placeholder="Make the colors more vibrant, add gold accents, change background to night sky..."
-                    className="w-full h-20 px-3 py-2 bg-surface border border-border-subtle text-text placeholder:text-muted text-sm resize-none focus:outline-none focus:border-accent transition-colors"
-                  />
-                  <button
-                    onClick={handleEdit}
-                    disabled={isEditing || !editPrompt.trim()}
-                    className="w-full py-2 border border-accent text-accent text-sm hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isEditing ? 'Editing...' : 'Apply Edit'}
-                  </button>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-medium text-text">
+                      Edit with AI
+                    </label>
+                    <span className={`text-xs font-mono ${editCount >= MAX_EDITS ? 'text-red-400' : 'text-muted'}`}>
+                      {editCount}/{MAX_EDITS} edits
+                    </span>
+                  </div>
+                  {editCount >= MAX_EDITS ? (
+                    <p className="text-sm text-muted py-2">
+                      Edit limit reached. Generate a new image to continue editing.
+                    </p>
+                  ) : (
+                    <>
+                      <textarea
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        placeholder="Make the colors more vibrant, add gold accents, change background to night sky..."
+                        className="w-full h-20 px-3 py-2 bg-surface border border-border-subtle text-text placeholder:text-muted text-sm resize-none focus:outline-none focus:border-accent transition-colors"
+                      />
+                      <button
+                        onClick={handleEdit}
+                        disabled={isEditing || !editPrompt.trim()}
+                        className="w-full py-2 border border-accent text-accent text-sm hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isEditing ? 'Editing...' : 'Apply Edit'}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {result.revisedPrompt && (
