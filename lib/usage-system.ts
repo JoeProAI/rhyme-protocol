@@ -6,19 +6,24 @@
 import { redisGet, redisSet, redisIncr, redisIncrBy, isRedisConfigured } from './redis'
 
 // Free tier limits (per day for anonymous users)
+// Budget: ~$100/month = ~$3.33/day across all free users
 export const FREE_LIMITS = {
-  chat_messages: 20,      // Grok chat messages per day
-  video_generations: 2,   // Video gen per day
-  image_edits: 10,        // Nano Banana edits per day
-  agent_calls: 10,        // Agent API calls per day
-  sandbox_hours: 1,       // Sandbox runtime hours per day
-  ai_assists: 20,         // Code AI assists per day
+  lyric_generations: 5,   // Lyric generations per day (~$0.02 each = $0.10/day)
+  cover_art: 3,           // Cover art per day (~$0.04 each = $0.12/day)
+  video_generations: 0,   // Video gen DISABLED for free (too expensive, coming soon)
+  chat_messages: 10,      // Chat messages per day
+  image_edits: 5,         // Image edits per day
+  agent_calls: 5,         // Agent API calls per day
+  sandbox_hours: 0,       // Sandbox disabled for free
+  ai_assists: 10,         // AI assists per day
 }
 
 // Pricing (cost to you, for tracking)
 export const COSTS = {
-  chat_message: 0.002,    // ~$0.002 per Grok message
-  video_segment: 0.35,    // ~$0.35 per video segment (Luma)
+  lyric_generation: 0.02, // ~$0.02 per lyric gen (GPT-4o + Grok)
+  cover_art: 0.04,        // ~$0.04 per cover (DALL-E 3)
+  video_segment: 0.50,    // ~$0.50 per video segment (Luma Ray-2)
+  chat_message: 0.002,    // ~$0.002 per message
   image_edit: 0.01,       // ~$0.01 per image edit
   agent_call: 0.005,      // ~$0.005 per agent call
   sandbox_hour: 0.05,     // ~$0.05 per sandbox hour
@@ -27,19 +32,45 @@ export const COSTS = {
 
 // Pricing for users (if they pay)
 export const USER_PRICING = {
-  chat_message: 0.01,     // $0.01 per message after free tier
-  video_segment: 0.50,    // $0.50 per video segment
+  lyric_generation: 0.05, // $0.05 per lyric gen
+  cover_art: 0.10,        // $0.10 per cover
+  video_segment: 1.00,    // $1.00 per video segment
+  chat_message: 0.01,     // $0.01 per message
   image_edit: 0.02,       // $0.02 per image edit
   agent_call: 0.01,       // $0.01 per agent call
   sandbox_hour: 0.10,     // $0.10 per sandbox hour
   ai_assist: 0.01,        // $0.01 per AI assist
 }
 
-export type UsageType = 'chat_messages' | 'video_generations' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists'
+// Coupon tiers - give different amounts of credits
+export const COUPON_TIERS = {
+  BETA_TESTER: {
+    lyric_generations: 50,
+    cover_art: 20,
+    video_generations: 5,
+    expires_days: 30,
+  },
+  EARLY_SUPPORTER: {
+    lyric_generations: 100,
+    cover_art: 50,
+    video_generations: 10,
+    expires_days: 60,
+  },
+  VIP: {
+    lyric_generations: 500,
+    cover_art: 100,
+    video_generations: 30,
+    expires_days: 90,
+  },
+}
+
+export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists'
 
 interface UsageData {
-  chat_messages: number
+  lyric_generations: number
+  cover_art: number
   video_generations: number
+  chat_messages: number
   image_edits: number
   agent_calls: number
   sandbox_hours: number

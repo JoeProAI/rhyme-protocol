@@ -17,6 +17,7 @@ const STUDIO_TOOLS = [
     description: 'Write bars with GPT-4o and Grok. Get rhyme suggestions, continue verses, or generate fresh content.',
     icon: '✍️',
     accent: 'from-purple-500/20 to-transparent',
+    available: true,
   },
   {
     href: '/studio/cover-art',
@@ -24,6 +25,7 @@ const STUDIO_TOOLS = [
     description: 'Generate professional album covers and single artwork with DALL-E 3. Multiple styles and moods.',
     icon: '🎨',
     accent: 'from-amber-500/20 to-transparent',
+    available: true,
   },
   {
     href: '/studio/video',
@@ -31,6 +33,8 @@ const STUDIO_TOOLS = [
     description: 'Create cinematic music videos with GPT-Image-1.5 and Luma Ray-2. Scene-by-scene generation.',
     icon: '🎬',
     accent: 'from-cyan-500/20 to-transparent',
+    available: false,
+    comingSoon: true,
   },
 ];
 
@@ -51,31 +55,59 @@ export default function Home() {
 
         {/* Studio Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {STUDIO_TOOLS.map((tool) => (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="group relative border border-border-subtle bg-surface p-6 transition-all hover:border-accent hover:-translate-y-1"
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${tool.accent} opacity-0 group-hover:opacity-100 transition-opacity`} />
-              <div className="relative">
-                <div className="text-4xl mb-4">{tool.icon}</div>
-                <h2 className="text-xl font-display tracking-tight mb-2">
-                  <span className="text-text">{tool.title.split('_')[0]}</span>
-                  <span className="text-accent">_{tool.title.split('_')[1]}</span>
-                </h2>
-                <p className="text-text-secondary text-sm leading-relaxed">
-                  {tool.description}
-                </p>
-                <div className="mt-4 flex items-center gap-2 text-accent text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Enter</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
+          {STUDIO_TOOLS.map((tool) => {
+            const CardContent = (
+              <>
+                <div className={`absolute inset-0 bg-gradient-to-br ${tool.accent} opacity-0 ${tool.available ? 'group-hover:opacity-100' : ''} transition-opacity`} />
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-4xl">{tool.icon}</div>
+                    {tool.comingSoon && (
+                      <span className="px-2 py-1 text-xs font-medium bg-accent/20 text-accent border border-accent/30">
+                        COMING SOON
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-xl font-display tracking-tight mb-2">
+                    <span className={tool.available ? 'text-text' : 'text-text/50'}>{tool.title.split('_')[0]}</span>
+                    <span className={tool.available ? 'text-accent' : 'text-accent/50'}>_{tool.title.split('_')[1]}</span>
+                  </h2>
+                  <p className={`text-sm leading-relaxed ${tool.available ? 'text-text-secondary' : 'text-text-secondary/50'}`}>
+                    {tool.description}
+                  </p>
+                  {tool.available && (
+                    <div className="mt-4 flex items-center gap-2 text-accent text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span>Enter</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  )}
                 </div>
+              </>
+            );
+
+            if (tool.available) {
+              return (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="group relative border border-border-subtle bg-surface p-6 transition-all hover:border-accent hover:-translate-y-1"
+                >
+                  {CardContent}
+                </Link>
+              );
+            }
+
+            return (
+              <div
+                key={tool.href}
+                className="relative border border-border-subtle/50 bg-surface/50 p-6 cursor-not-allowed"
+              >
+                {CardContent}
               </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
 
         {/* Tech Stack */}
