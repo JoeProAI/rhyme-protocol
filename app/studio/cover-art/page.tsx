@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 
 type CoverStyle = 'album-cover' | 'single-cover' | 'mixtape' | 'ep';
@@ -29,8 +29,11 @@ export default function CoverArtStudio() {
   const [mood, setMood] = useState<CoverMood>('vibrant');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
   const [result, setResult] = useState<{ imageUrl: string; revisedPrompt?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -60,6 +63,72 @@ export default function CoverArtStudio() {
       setError(err.message);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!result?.imageUrl) return;
+    
+    try {
+      let blob: Blob;
+      
+      if (result.imageUrl.startsWith('data:')) {
+        const response = await fetch(result.imageUrl);
+        blob = await response.blob();
+      } else {
+        const response = await fetch(result.imageUrl);
+        blob = await response.blob();
+      }
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cover-art-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setError('Failed to download image');
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!result?.imageUrl || !editPrompt.trim()) return;
+    
+    setIsEditing(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/nano-banana', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: editPrompt,
+          imageData: result.imageUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to edit');
+      }
+
+      if (data.editedImage) {
+        setResult({
+          imageUrl: data.editedImage,
+          revisedPrompt: data.result,
+        });
+        setEditPrompt('');
+      } else {
+        throw new Error('No edited image returned');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -216,15 +285,33 @@ export default function CoverArtStudio() {
             </div>
 
             {result && (
-              <div className="space-y-2">
-                <a
-                  href={result.imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-3 border border-accent text-accent text-center hover:bg-accent/10 transition-colors"
+              <div className="space-y-4">
+                <button
+                  onClick={handleDownload}
+                  className="block w-full py-3 bg-accent text-bg font-medium text-center hover:bg-accent/90 transition-colors"
                 >
-                  Download Full Resolution
-                </a>
+                  Download PNG
+                </button>
+                
+                <div className="border border-border-subtle p-4 space-y-3">
+                  <label className="block text-sm font-medium text-text">
+                    Edit with AI
+                  </label>
+                  <textarea
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    placeholder="Make the colors more vibrant, add gold accents, change background to night sky..."
+                    className="w-full h-20 px-3 py-2 bg-surface border border-border-subtle text-text placeholder:text-muted text-sm resize-none focus:outline-none focus:border-accent transition-colors"
+                  />
+                  <button
+                    onClick={handleEdit}
+                    disabled={isEditing || !editPrompt.trim()}
+                    className="w-full py-2 border border-accent text-accent text-sm hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isEditing ? 'Editing...' : 'Apply Edit'}
+                  </button>
+                </div>
+
                 {result.revisedPrompt && (
                   <details className="text-sm">
                     <summary className="text-text-secondary cursor-pointer hover:text-text">

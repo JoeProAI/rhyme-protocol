@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Lazy initialization to avoid build-time env errors
+export const maxDuration = 60;
+
 let openaiClient: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!openaiClient) {
@@ -37,8 +38,8 @@ const MOOD_PROMPTS: Record<string, string> = {
 
 const SIZE_MAP: Record<string, string> = {
   '1:1': '1024x1024',
-  '16:9': '1792x1024',
-  '9:16': '1024x1792',
+  '16:9': '1536x1024',
+  '9:16': '1024x1536',
 };
 
 export async function POST(request: NextRequest) {
@@ -59,28 +60,32 @@ export async function POST(request: NextRequest) {
 
     const fullPrompt = `Create album cover art: ${prompt}. Style: ${stylePrompt}. Mood: ${moodPrompt}. Professional quality, no text or typography, suitable for music streaming platforms. High resolution, visually striking composition.`;
 
-    console.log(`[Cover Art] Generating with prompt: ${fullPrompt.substring(0, 100)}...`);
+    console.log(`[Cover Art] Generating with gpt-image-1.5: ${fullPrompt.substring(0, 100)}...`);
 
     const openai = getOpenAI();
     
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1.5',
       prompt: fullPrompt,
       n: 1,
-      size: size as '1024x1024' | '1792x1024' | '1024x1792',
-      quality: 'hd',
-      style: 'vivid',
+      size: size as '1024x1024' | '1536x1024' | '1024x1536',
+      quality: 'high',
     });
 
     if (!response.data || response.data.length === 0) {
       throw new Error('No image data in response');
     }
 
-    const imageUrl = response.data[0]?.url;
-    const revisedPrompt = response.data[0]?.revised_prompt;
-
-    if (!imageUrl) {
-      throw new Error('No image URL generated');
+    const imageData = response.data[0];
+    const revisedPrompt = imageData?.revised_prompt;
+    
+    let imageUrl: string;
+    if (imageData?.b64_json) {
+      imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+    } else if (imageData?.url) {
+      imageUrl = imageData.url;
+    } else {
+      throw new Error('No image data in response');
     }
 
     return NextResponse.json({
