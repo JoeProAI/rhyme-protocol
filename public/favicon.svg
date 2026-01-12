@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a2e"/>
+      <stop offset="100%" style="stop-color:#0a0a0f"/>
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00F0FF"/>
+      <stop offset="50%" style="stop-color:#A855F7"/>
+      <stop offset="100%" style="stop-color:#FF10F0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+  
+  <!-- Glowing border -->
+  <rect x="8" y="8" width="496" height="496" rx="92" fill="none" stroke="url(#boltGrad)" stroke-width="4" opacity="0.5"/>
+  
+  <!-- Lightning bolt J - powerful and distinctive -->
+  <path d="M 300 80 L 180 250 L 260 250 L 200 430 L 340 220 L 260 220 L 300 80" 
+        fill="url(#boltGrad)" 
+        filter="url(#glow)"/>
+  
+  <!-- Inner highlight -->
+  <path d="M 285 110 L 200 240 L 255 240 L 215 380 L 315 230 L 265 230 L 285 110" 
+        fill="white" 
+        opacity="0.3"/>
+</svg>

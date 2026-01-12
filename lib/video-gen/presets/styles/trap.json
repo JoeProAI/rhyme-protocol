@@ -1,0 +1,32 @@
+{
+  "id": "trap",
+  "name": "Trap",
+  "description": "Dark, moody, hypnotic visual style",
+  "basePrompt": "dark moody aesthetic, neon accents, atmospheric smoke, hypnotic visuals, cinematic",
+  "negativePrompt": "bright daylight, cartoon, happy cheerful, natural outdoor",
+  "tags": ["dark", "moody", "neon", "smoke", "hypnotic", "trap", "atmospheric"],
+  "subjects": [
+    "silhouette emerging from colored smoke",
+    "face half-lit by purple neon",
+    "hands with diamond rings in light beams",
+    "eyes piercing through darkness",
+    "figure in LED light tunnel",
+    "slow motion liquid pour",
+    "abstract human form dissolving",
+    "floating in void with particles"
+  ],
+  "environments": [
+    "void with neon geometry floating",
+    "smoke-filled room with light shafts",
+    "infinite LED tunnel perspective",
+    "abstract color void space",
+    "distorted club interior reflections",
+    "digital glitch landscape",
+    "underwater darkness with light rays",
+    "infinite mirror room kaleidoscope"
+  ],
+  "cameraMovements": ["slow_rotation", "drift", "zoom_pulse", "orbital_float"],
+  "lighting": ["neon_purple", "neon_blue", "neon_red", "strobing", "color_wash"],
+  "colorGrade": "high contrast, crushed blacks, vibrant neon highlights",
+  "motionStyle": "slow, hypnotic, dreamlike with occasional glitch"
+}

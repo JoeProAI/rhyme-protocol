@@ -1,0 +1,32 @@
+{
+  "id": "oldschool",
+  "name": "Old School",
+  "description": "Golden era hip-hop, boom bap, classic vibes",
+  "basePrompt": "90s hip hop aesthetic, golden era, boom bap vibes, nostalgic, film grain, classic",
+  "negativePrompt": "modern clean, digital perfect, futuristic, neon",
+  "tags": ["oldschool", "90s", "golden_era", "boom_bap", "classic", "nostalgic"],
+  "subjects": [
+    "boombox on shoulder street",
+    "b-boy freeze pose",
+    "graffiti artist with spray can",
+    "turntables DJ scratching",
+    "cipher freestyle circle",
+    "vintage microphone performance",
+    "cassette tape close-up",
+    "sneaker collection display"
+  ],
+  "environments": [
+    "new york subway car interior",
+    "basketball court chain fence",
+    "brick wall graffiti mural",
+    "record store vinyl bins",
+    "block party crowd",
+    "project stairwell",
+    "rooftop water tower background",
+    "corner bodega storefront"
+  ],
+  "cameraMovements": ["handheld_authentic", "static_wide", "slow_pan", "low_angle"],
+  "lighting": ["daylight_harsh", "streetlight_warm", "flash_photography", "window_light"],
+  "colorGrade": "film grain, slightly faded, warm browns and yellows",
+  "motionStyle": "authentic, documentary, handheld energy"
+}

@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Agent data directory
+/data/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Firebase service account (NEVER COMMIT!)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+serviceAccountKey.json
+
+# OS
+Thumbs.db
+
+# Temp video generation files
+temp_video_gen/
+*.mp4
+*.mp3
+*.wav
+
+# Large JSON data files
+luma_gens.json

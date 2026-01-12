@@ -1,0 +1,32 @@
+{
+  "id": "storytelling",
+  "name": "Storytelling",
+  "description": "Narrative-driven, cinematic, movie-like",
+  "basePrompt": "cinematic storytelling, narrative photography, movie scene, dramatic composition, film still",
+  "negativePrompt": "abstract, random, disconnected, non-narrative",
+  "tags": ["cinematic", "narrative", "story", "dramatic", "movie", "emotional"],
+  "subjects": [
+    "character walking away down road",
+    "person looking out rainy window",
+    "two figures in confrontation",
+    "child discovering something magical",
+    "person at crossroads decision",
+    "reunion embrace emotional",
+    "running through obstacles",
+    "standing alone in crowd"
+  ],
+  "environments": [
+    "empty road stretching to horizon",
+    "rain-soaked city street night",
+    "childhood bedroom nostalgia",
+    "courtroom dramatic lighting",
+    "hospital corridor walking",
+    "graduation ceremony crowd",
+    "wedding venue preparation",
+    "funeral gathering somber"
+  ],
+  "cameraMovements": ["dolly_in_emotional", "crane_establishing", "tracking_follow", "close_up_reaction"],
+  "lighting": ["motivated_source", "chiaroscuro_dramatic", "soft_emotional", "harsh_conflict"],
+  "colorGrade": "cinematic color grade matching scene emotion",
+  "motionStyle": "deliberate, story-driven, character-focused"
+}

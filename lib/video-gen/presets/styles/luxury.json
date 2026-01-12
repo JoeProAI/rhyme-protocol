@@ -1,0 +1,32 @@
+{
+  "id": "luxury",
+  "name": "Luxury",
+  "description": "High-end, flashy, aspirational visuals",
+  "basePrompt": "luxury lifestyle, high-end aesthetic, golden hour, expensive taste, cinematic glamour",
+  "negativePrompt": "cheap, dirty, run-down, low quality, amateur",
+  "tags": ["luxury", "rich", "glamour", "gold", "expensive", "aspirational"],
+  "subjects": [
+    "exotic car door opening reveal",
+    "champagne pour in crystal glass",
+    "diamond jewelry sparkling close-up",
+    "designer watch on wrist",
+    "private jet interior",
+    "penthouse view at sunset",
+    "stack of money fanning",
+    "designer fashion slow motion walk"
+  ],
+  "environments": [
+    "mansion infinity pool at golden hour",
+    "penthouse with floor-to-ceiling windows",
+    "luxury yacht deck ocean sunset",
+    "exotic car showroom spotlight",
+    "VIP club booth champagne service",
+    "private jet cabin clouds outside",
+    "designer store marble interior",
+    "rooftop helipad city lights"
+  ],
+  "cameraMovements": ["slow_dolly", "crane_up", "smooth_glide", "reveal_pan"],
+  "lighting": ["golden_hour", "glamour_soft", "spotlight_dramatic", "chandelier_sparkle"],
+  "colorGrade": "warm golden tones, rich shadows, highlight bloom",
+  "motionStyle": "smooth, elegant, slow-motion emphasis on details"
+}

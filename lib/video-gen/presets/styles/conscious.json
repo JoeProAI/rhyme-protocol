@@ -1,0 +1,32 @@
+{
+  "id": "conscious",
+  "name": "Conscious",
+  "description": "Thoughtful, artistic, meaningful imagery",
+  "basePrompt": "artistic photography, meaningful symbolism, natural beauty, contemplative mood, fine art",
+  "negativePrompt": "flashy, materialistic, violent, shallow, commercial",
+  "tags": ["conscious", "artistic", "thoughtful", "meaningful", "natural", "symbolic"],
+  "subjects": [
+    "person in meditation silhouette",
+    "hands releasing butterflies",
+    "child looking at horizon hope",
+    "tree growing through concrete",
+    "book pages turning in wind",
+    "mirror reflection different self",
+    "seeds becoming flowers timelapse",
+    "chains breaking freedom moment"
+  ],
+  "environments": [
+    "mountain peak above clouds",
+    "ancient library with light rays",
+    "peaceful forest clearing",
+    "ocean shore at sunrise",
+    "urban garden oasis",
+    "art gallery with paintings",
+    "quiet meditation space",
+    "bridge connecting two worlds"
+  ],
+  "cameraMovements": ["static_contemplative", "slow_push", "gentle_drift", "reveal"],
+  "lighting": ["natural_soft", "golden_hour", "diffused_overcast", "rim_light"],
+  "colorGrade": "natural tones, film-like, subtle warmth",
+  "motionStyle": "slow, peaceful, intentional movement"
+}

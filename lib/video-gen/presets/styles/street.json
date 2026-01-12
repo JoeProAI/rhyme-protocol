@@ -1,0 +1,32 @@
+{
+  "id": "street",
+  "name": "Street",
+  "description": "Urban, authentic, gritty aesthetic",
+  "basePrompt": "urban street photography, gritty aesthetic, authentic atmosphere, raw emotion",
+  "negativePrompt": "cartoon, anime, oversaturated, clean sterile environment",
+  "tags": ["urban", "street", "gritty", "authentic", "real", "raw"],
+  "subjects": [
+    "hooded figure in alleyway silhouette",
+    "artist under flickering streetlight",
+    "hands counting cash in dim light",
+    "gold chain swinging in slow motion",
+    "sneakers on wet concrete reflection",
+    "studio microphone with smoke",
+    "figure on project rooftop cityscape",
+    "group on corner at night"
+  ],
+  "environments": [
+    "dark alleyway with graffiti tags",
+    "rooftop overlooking city lights",
+    "abandoned warehouse with broken windows",
+    "basketball court under sodium lights",
+    "empty subway platform at midnight",
+    "corner store neon glow",
+    "project hallway fluorescent flicker",
+    "parking lot with distant headlights"
+  ],
+  "cameraMovements": ["handheld_shake", "slow_tracking", "push_in", "static_wide"],
+  "lighting": ["sodium_vapor_orange", "neon_signs", "harsh_shadows", "streetlight_pools"],
+  "colorGrade": "desaturated with orange/teal split toning",
+  "motionStyle": "gritty, raw, documentary feel"
+}
