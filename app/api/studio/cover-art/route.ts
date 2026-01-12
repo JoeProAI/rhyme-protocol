@@ -37,8 +37,8 @@ const MOOD_PROMPTS: Record<string, string> = {
 
 const SIZE_MAP: Record<string, string> = {
   '1:1': '1024x1024',
-  '16:9': '1536x1024',
-  '9:16': '1024x1536',
+  '16:9': '1792x1024',
+  '9:16': '1024x1792',
 };
 
 export async function POST(request: NextRequest) {
@@ -64,28 +64,23 @@ export async function POST(request: NextRequest) {
     const openai = getOpenAI();
     
     const response = await openai.images.generate({
-      model: 'gpt-image-1',
+      model: 'dall-e-3',
       prompt: fullPrompt,
       n: 1,
-      size: size as '1024x1024' | '1536x1024' | '1024x1536',
-      quality: 'high',
+      size: size as '1024x1024' | '1792x1024' | '1024x1792',
+      quality: 'hd',
+      style: 'vivid',
     });
 
     if (!response.data || response.data.length === 0) {
       throw new Error('No image data in response');
     }
 
-    const imageData = response.data[0];
-    const revisedPrompt = imageData?.revised_prompt;
+    const imageUrl = response.data[0]?.url;
+    const revisedPrompt = response.data[0]?.revised_prompt;
 
-    let imageUrl: string;
-    
-    if (imageData?.b64_json) {
-      imageUrl = `data:image/png;base64,${imageData.b64_json}`;
-    } else if (imageData?.url) {
-      imageUrl = imageData.url;
-    } else {
-      throw new Error('No image data in response');
+    if (!imageUrl) {
+      throw new Error('No image URL generated');
     }
 
     return NextResponse.json({
