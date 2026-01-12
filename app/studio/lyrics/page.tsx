@@ -17,8 +17,8 @@ const STYLES: { value: LyricStyle; label: string; desc: string }[] = [
 ];
 
 const AI_MODELS: { value: AIModel; label: string; desc: string }[] = [
-  { value: 'gpt', label: 'GPT-4o', desc: 'The Technician - Complex rhyme schemes' },
-  { value: 'grok', label: 'Grok', desc: 'The Provocateur - Bold and edgy' },
+  { value: 'gpt', label: 'GPT 5.2', desc: 'The Technician - Complex rhyme schemes' },
+  { value: 'grok', label: 'Grok 4.1', desc: 'The Provocateur - Bold and edgy' },
   { value: 'both', label: 'Both', desc: 'Compare outputs side by side' },
 ];
 

@@ -33,12 +33,12 @@ const AI_PERSONALITIES = {
   gpt: {
     name: 'The Technician',
     focus: 'complex rhyme schemes, multisyllabic rhymes, intricate wordplay',
-    model: 'gpt-4o',
+    model: 'gpt-4.1-2025-04-14',
   },
   grok: {
     name: 'The Provocateur', 
     focus: 'bold statements, cultural references, wit and edge',
-    model: 'grok-beta',
+    model: 'grok-3-fast',
   },
 };
 
@@ -54,7 +54,7 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
 async function generateWithGPT(prompt: string, systemPrompt: string): Promise<string> {
   const openai = getOpenAI();
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4.1-2025-04-14',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt },
@@ -69,7 +69,7 @@ async function generateWithGrok(prompt: string, systemPrompt: string): Promise<s
   try {
     const grok = getGrokClient();
     const response = await grok.chat.completions.create({
-      model: 'grok-beta',
+      model: 'grok-3-fast',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },

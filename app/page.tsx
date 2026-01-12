@@ -124,9 +124,9 @@ export default function Home() {
         <div className="text-center pt-8 border-t border-border-subtle">
           <p className="text-sm text-muted mb-4">Powered by</p>
           <div className="flex flex-wrap justify-center gap-4 text-text-secondary text-sm">
-            <span>GPT-4o</span>
+            <span>GPT 5.2</span>
             <span className="text-border-subtle">|</span>
-            <span>Grok</span>
+            <span>Grok 4.1</span>
             <span className="text-border-subtle">|</span>
             <span>DALL-E 3</span>
             <span className="text-border-subtle">|</span>
