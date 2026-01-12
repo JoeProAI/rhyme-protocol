@@ -75,11 +75,17 @@ export async function POST(request: NextRequest) {
       throw new Error('No image data in response');
     }
 
-    const imageUrl = response.data[0]?.url;
-    const revisedPrompt = response.data[0]?.revised_prompt;
+    const imageData = response.data[0];
+    const revisedPrompt = imageData?.revised_prompt;
 
-    if (!imageUrl) {
-      throw new Error('No image URL generated');
+    let imageUrl: string;
+    
+    if (imageData?.b64_json) {
+      imageUrl = `data:image/png;base64,${imageData.b64_json}`;
+    } else if (imageData?.url) {
+      imageUrl = imageData.url;
+    } else {
+      throw new Error('No image data in response');
     }
 
     return NextResponse.json({
