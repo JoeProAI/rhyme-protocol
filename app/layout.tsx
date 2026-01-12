@@ -7,6 +7,7 @@ import FloatingChat from "@/components/FloatingChat";
 import SoftPaywall from "@/components/SoftPaywall";
 import NeuralBackground from "@/components/NeuralBackground";
 import { PHProvider } from "./providers";
+import { Providers } from "@/components/providers";
 
 // ============================================
 // SEO CONFIGURATION - RHYME PROTOCOL
@@ -124,7 +125,9 @@ const jsonLd = {
 
 // Navigation items
 const navItems = [
-  { href: "/studio/video", label: "Studio" },
+  { href: "/studio/cover-art", label: "Cover Art" },
+  { href: "/studio/video", label: "Video" },
+  { href: "/studio/gallery", label: "My Creations" },
 ];
 
 export default function RootLayout({
@@ -141,6 +144,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-grain">
+        <Providers>
         <PHProvider>
           {/* Neural Network Background */}
           <NeuralBackground />
@@ -286,6 +290,7 @@ export default function RootLayout({
           {/* Soft Paywall */}
           <SoftPaywall />
         </PHProvider>
+        </Providers>
       </body>
     </html>
   );
