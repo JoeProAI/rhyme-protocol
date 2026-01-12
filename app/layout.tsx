@@ -9,35 +9,29 @@ import NeuralBackground from "@/components/NeuralBackground";
 import { PHProvider } from "./providers";
 
 // ============================================
-// SEO CONFIGURATION - OPTIMIZED FOR JOEPRO BRAND
+// SEO CONFIGURATION - RHYME PROTOCOL
 // ============================================
-const TWITTER_HANDLE = "@JoePro";
-const SITE_URL = "https://joepro.ai";
-const SITE_NAME = "JoePro.ai";
-const BRAND_NAME = "JoePro";
+const TWITTER_HANDLE = "@RhymeProtocol";
+const SITE_URL = "https://rhyme-protocol.vercel.app";
+const SITE_NAME = "Rhyme Protocol";
+const BRAND_NAME = "Rhyme Protocol";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "JoePro.ai – AI Tools, Prompts & Dev Resources",
-    template: "%s | JoePro.ai",
+    default: "Rhyme Protocol – AI Music Video Generator",
+    template: "%s | Rhyme Protocol",
   },
-  description: "Curated AI tools, ready-to-use prompts, and practical guides for developers and creators. Custom agents, video generation, and instant dev environments.",
+  description: "Generate cinematic rap and hip-hop music videos with AI. Powered by GPT-Image, Luma Ray-2, and intelligent scene prediction.",
   keywords: [
-    // Primary brand keywords - CRITICAL for search ownership
-    "JoePro", "joepro", "JoeProAI", "joeproai", "Joe Pro", "joe pro",
-    "JoePro.ai", "joepro.ai", "JoePro AI", "joepro ai",
-    // Brand + service combinations
-    "JoePro AI agents", "JoePro video generator", "JoePro AI platform",
-    "JoeProAI agents", "JoeProAI tools", "JoeProAI video",
-    // Technical keywords
-    "AI platform", "AI agents", "custom AI agents", "AI video generator",
-    "GPT-4", "Grok", "xAI", "OpenAI", "Luma AI", "Nano Banana",
-    "cloud development", "AI development tools", "machine learning platform"
+    "Rhyme Protocol", "AI music video", "rap video generator",
+    "hip-hop AI", "music video AI", "AI video generator",
+    "Luma AI", "GPT-Image", "AI rap video",
+    "music video generator", "AI music production"
   ],
-  authors: [{ name: "JoePro", url: SITE_URL }],
-  creator: "JoePro",
-  publisher: "JoePro.ai",
+  authors: [{ name: "Rhyme Protocol", url: SITE_URL }],
+  creator: "Rhyme Protocol",
+  publisher: "Rhyme Protocol",
   robots: {
     index: true,
     follow: true,
@@ -53,8 +47,8 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "JoePro.ai – Build Smarter with AI",
-    description: "Curated AI tools, ready-to-use prompts, and practical guides. Custom agents, video generation, and instant dev environments.",
+    title: "Rhyme Protocol – AI Music Video Generator",
+    description: "Generate cinematic rap and hip-hop music videos with AI.",
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
@@ -64,14 +58,14 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: "JoePro.ai – Build Smarter with AI",
+        alt: "Rhyme Protocol – AI Music Video Generator",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "JoePro.ai – Build Smarter with AI",
-    description: "Curated AI tools, ready-to-use prompts, and practical guides. Custom agents, video generation, and instant dev environments.",
+    title: "Rhyme Protocol – AI Music Video Generator",
+    description: "Generate cinematic rap and hip-hop music videos with AI.",
     site: TWITTER_HANDLE,
     creator: TWITTER_HANDLE,
     images: [`${SITE_URL}/opengraph-image`],
@@ -94,7 +88,7 @@ export const metadata: Metadata = {
   },
 };
 
-// JSON-LD Structured Data - Optimized for JoePro/JoeProAI brand ownership
+// JSON-LD Structured Data
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -102,63 +96,20 @@ const jsonLd = {
       "@type": "WebSite",
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
-      name: "JoePro | JoeProAI",
-      alternateName: ["JoePro", "JoeProAI", "JoePro.ai", "Joe Pro AI"],
-      description: "JoePro (JoeProAI) - The official AI platform by JoePro for custom AI agents, video generation, and cloud development tools.",
-      publisher: { "@id": `${SITE_URL}/#organization` },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: `${SITE_URL}/search?q={search_term_string}`,
-        "query-input": "required name=search_term_string"
-      }
+      name: "Rhyme Protocol",
+      description: "AI-powered music video generation platform for rap and hip-hop artists.",
+      publisher: { "@id": `${SITE_URL}/#organization` }
     },
     {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
-      name: "JoeProAI",
-      alternateName: ["JoePro", "JoePro.ai", "Joe Pro", "JoePro AI"],
+      name: "Rhyme Protocol",
       url: SITE_URL,
-      logo: {
-        "@type": "ImageObject",
-        url: `${SITE_URL}/opengraph-image`,
-        width: 1200,
-        height: 630
-      },
-      description: "JoePro (JoeProAI) builds AI-powered tools including custom agents, video generators, and cloud development environments.",
-      foundingDate: "2024",
-      founder: { "@id": `${SITE_URL}/#person` },
-      sameAs: [
-        "https://x.com/JoePro",
-        "https://github.com/JoeProAI",
-        "https://linkedin.com/in/JoeProAI",
-        "https://youtube.com/@JoeProAI",
-        "https://x.com/JoePro",
-      ],
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "customer support",
-        url: SITE_URL
-      }
-    },
-    {
-      "@type": "Person",
-      "@id": `${SITE_URL}/#person`,
-      name: "JoePro",
-      alternateName: ["JoeProAI", "Joe Pro"],
-      url: SITE_URL,
-      jobTitle: "AI Developer & Founder",
-      worksFor: { "@id": `${SITE_URL}/#organization` },
-      sameAs: [
-        "https://x.com/JoePro",
-        "https://github.com/JoeProAI",
-        "https://linkedin.com/in/JoeProAI",
-        "https://youtube.com/@JoeProAI",
-        "https://x.com/JoePro",
-      ],
+      description: "AI-powered music video generation platform."
     },
     {
       "@type": "SoftwareApplication",
-      name: "JoePro AI Video Generator",
+      name: "Rhyme Protocol Video Generator",
       applicationCategory: "MultimediaApplication",
       operatingSystem: "Web",
       offers: {
@@ -167,29 +118,13 @@ const jsonLd = {
         priceCurrency: "USD"
       },
       creator: { "@id": `${SITE_URL}/#organization` }
-    },
-    {
-      "@type": "BreadcrumbList",
-      "@id": `${SITE_URL}/#breadcrumb`,
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "JoePro Home", item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: "AI Apps", item: `${SITE_URL}/apps` },
-        { "@type": "ListItem", position: 3, name: "AI Agents", item: `${SITE_URL}/agents` }
-      ]
     }
   ],
 };
 
 // Navigation items
 const navItems = [
-  { href: "/apps", label: "Apps" },
-  { href: "/agents", label: "Agents" },
-  { href: "/lab", label: "Lab" },
-  { href: "/best-ai-tools", label: "Recs" },
-  { href: "/feeds", label: "News" },
-  { href: "/devenv", label: "Dev" },
-  { href: "/blog", label: "Blog" },
-  { href: "/dashboard", label: "Usage" },
+  { href: "/studio/video", label: "Studio" },
 ];
 
 export default function RootLayout({
@@ -223,10 +158,10 @@ export default function RootLayout({
             <div className="container">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
-                <Link href="/" className="flex items-center" aria-label="JoePro.ai home">
+                <Link href="/" className="flex items-center" aria-label="Rhyme Protocol home">
                   <span className="text-xl font-display tracking-tight">
-                    <span className="text-text">JoePro</span>
-                    <span className="text-accent">.ai</span>
+                    <span className="text-text">RHYME</span>
+                    <span className="text-accent">_PROTOCOL</span>
                   </span>
                 </Link>
 
@@ -289,13 +224,12 @@ export default function RootLayout({
                 <div className="md:col-span-2">
                   <Link href="/" className="inline-block mb-4">
                     <span className="text-xl font-display">
-                      <span className="text-text">JoePro</span>
-                      <span className="text-accent">.ai</span>
+                      <span className="text-text">RHYME</span>
+                      <span className="text-accent">_PROTOCOL</span>
                     </span>
                   </Link>
                   <p className="text-text-secondary text-sm max-w-md">
-                    Production-ready AI tools and development resources. 
-                    Build smarter with curated prompts, custom agents, and video generation.
+                    AI-powered music video generation for rap and hip-hop artists.
                   </p>
                 </div>
 
@@ -322,42 +256,12 @@ export default function RootLayout({
                   <ul className="space-y-2">
                     <li>
                       <a 
-                        href="https://x.com/JoePro" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-text-secondary hover:text-accent transition-colors"
-                      >
-                        X (Twitter)
-                      </a>
-                    </li>
-                    <li>
-                      <a 
-                        href="https://github.com/JoeProAI" 
+                        href="https://github.com/JoeProAI/rhyme-protocol" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-sm text-text-secondary hover:text-accent transition-colors"
                       >
                         GitHub
-                      </a>
-                    </li>
-                    <li>
-                      <a 
-                        href="https://huggingface.co/JoeProAI" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-text-secondary hover:text-accent transition-colors"
-                      >
-                        🤗 Hugging Face
-                      </a>
-                    </li>
-                    <li>
-                      <a 
-                        href="https://youtube.com/@JoeProAI" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-text-secondary hover:text-accent transition-colors"
-                      >
-                        YouTube
                       </a>
                     </li>
                   </ul>
@@ -367,7 +271,7 @@ export default function RootLayout({
               {/* Bottom bar */}
               <div className="mt-12 pt-8 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-xs text-muted">
-                  © {new Date().getFullYear()} JoePro.ai. Built with intention.
+                  © {new Date().getFullYear()} Rhyme Protocol
                 </p>
                 <p className="text-xs text-muted">
                   Powered by Next.js, OpenAI, and Luma AI
