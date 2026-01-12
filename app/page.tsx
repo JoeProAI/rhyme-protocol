@@ -15,24 +15,21 @@ const STUDIO_TOOLS = [
     href: '/studio/lyrics',
     title: 'LYRIC_LAB',
     description: 'Write bars with GPT-4o and Grok. Get rhyme suggestions, continue verses, or generate fresh content.',
-    icon: '✍️',
-    accent: 'from-purple-500/20 to-transparent',
+    iconPath: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z',
     available: true,
   },
   {
     href: '/studio/cover-art',
     title: 'COVER_ART',
     description: 'Generate professional album covers and single artwork with DALL-E 3. Multiple styles and moods.',
-    icon: '🎨',
-    accent: 'from-amber-500/20 to-transparent',
+    iconPath: 'M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z',
     available: true,
   },
   {
     href: '/studio/video',
     title: 'VIDEO_GEN',
     description: 'Create cinematic music videos with GPT-Image-1.5 and Luma Ray-2. Scene-by-scene generation.',
-    icon: '🎬',
-    accent: 'from-cyan-500/20 to-transparent',
+    iconPath: 'M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z',
     available: false,
     comingSoon: true,
   },
@@ -58,13 +55,26 @@ export default function Home() {
           {STUDIO_TOOLS.map((tool) => {
             const CardContent = (
               <>
-                <div className={`absolute inset-0 bg-gradient-to-br ${tool.accent} opacity-0 ${tool.available ? 'group-hover:opacity-100' : ''} transition-opacity`} />
+                <div className={`absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 ${tool.available ? 'group-hover:opacity-100' : ''} transition-opacity`} />
                 <div className="relative">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="text-4xl">{tool.icon}</div>
+                  <div className="flex items-start justify-between mb-6">
+                    <div className={`w-12 h-12 border ${tool.available ? 'border-accent/40' : 'border-border-subtle'} flex items-center justify-center`}>
+                      <svg 
+                        width="24" 
+                        height="24" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke={tool.available ? 'var(--color-accent)' : 'var(--color-muted)'} 
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d={tool.iconPath} />
+                      </svg>
+                    </div>
                     {tool.comingSoon && (
-                      <span className="px-2 py-1 text-xs font-medium bg-accent/20 text-accent border border-accent/30">
-                        COMING SOON
+                      <span className="px-2 py-1 text-xs font-mono tracking-wider bg-surface border border-border-subtle text-muted">
+                        SOON
                       </span>
                     )}
                   </div>
@@ -76,8 +86,8 @@ export default function Home() {
                     {tool.description}
                   </p>
                   {tool.available && (
-                    <div className="mt-4 flex items-center gap-2 text-accent text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span>Enter</span>
+                    <div className="mt-6 flex items-center gap-2 text-accent text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span>Enter Studio</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                       </svg>
@@ -92,7 +102,7 @@ export default function Home() {
                 <Link
                   key={tool.href}
                   href={tool.href}
-                  className="group relative border border-border-subtle bg-surface p-6 transition-all hover:border-accent hover:-translate-y-1"
+                  className="group relative border border-border-subtle bg-surface p-6 transition-all hover:border-accent hover:-translate-y-1 hover:shadow-lg"
                 >
                   {CardContent}
                 </Link>
@@ -102,7 +112,7 @@ export default function Home() {
             return (
               <div
                 key={tool.href}
-                className="relative border border-border-subtle/50 bg-surface/50 p-6 cursor-not-allowed"
+                className="relative border border-border-subtle/50 bg-surface/30 p-6 cursor-not-allowed"
               >
                 {CardContent}
               </div>

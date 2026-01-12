@@ -290,7 +290,9 @@ export default function LyricLab() {
               </div>
             ) : (
               <div className="border border-border-subtle bg-surface p-12 text-center">
-                <div className="text-6xl mb-4 opacity-20">✍️</div>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 opacity-20">
+                  <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 <p className="text-muted">Generated lyrics will appear here</p>
                 <p className="text-muted text-sm mt-2">
                   Choose &quot;Both&quot; to compare GPT and Grok side by side
