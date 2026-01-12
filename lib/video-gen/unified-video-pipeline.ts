@@ -124,7 +124,7 @@ Style: ${style}`
 
   try {
     // Use the Responses API with image input for visual consistency
-    const response: any = await (openai as any).responses.create({
+    const response: any = await (getOpenAI() as any).responses.create({
       model: 'gpt-4o',
       input: [
         {
