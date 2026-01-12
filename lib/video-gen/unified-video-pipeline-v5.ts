@@ -31,8 +31,14 @@ import * as os from 'os'
 
 const execAsync = promisify(exec)
 const LUMA_API_BASE = 'https://api.lumalabs.ai/dream-machine/v1'
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+function getGenAI() {
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 type LumaDuration = '5s' | '9s'
 
@@ -102,7 +108,7 @@ async function generateInitialFrame(prompt: string, style: string): Promise<stri
 Style: ${style}
 ${STYLE_REQUIREMENTS}`
 
-  const response = await openai.images.generate({
+  const response = await getOpenAI().images.generate({
     model: 'gpt-image-1.5',
     prompt: fullPrompt,
     n: 1,
@@ -130,7 +136,7 @@ async function nanoBananaDescribeMotion(
 ): Promise<NanoBananaMotionOutput> {
   console.log(`  🍌 Nano Banana V5: Analyzing frame and describing MOTION...`)
   
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   const analysisPrompt = `You are an expert cinematographer planning a ${segmentSeconds}-second video shot.
 

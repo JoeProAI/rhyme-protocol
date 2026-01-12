@@ -22,8 +22,14 @@ import * as os from 'os'
 
 const execAsync = promisify(exec)
 const LUMA_API_BASE = 'https://api.lumalabs.ai/dream-machine/v1'
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+function getGenAI() {
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -170,7 +176,7 @@ async function transcribeAudio(audioUrl: string): Promise<TranscriptionResult> {
   
   try {
     const file = await fs.readFile(tempFile)
-    const response = await openai.audio.transcriptions.create({
+    const response = await getOpenAI().audio.transcriptions.create({
       file: new File([file], 'audio.mp3', { type: 'audio/mpeg' }),
       model: 'whisper-1',
       response_format: 'verbose_json',
@@ -262,7 +268,7 @@ Output valid JSON with this exact structure:
   }
 }`
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
@@ -329,7 +335,7 @@ ${STYLE_REQUIREMENTS}`
     })
   }
 
-  const response = await openai.responses.create({
+  const response = await getOpenAI().responses.create({
     model: 'gpt-image-1.5',
     input,
     tools: [{ 
@@ -365,7 +371,7 @@ async function predictMotion(
 ): Promise<NanoBananaMotionOutput> {
   console.log(`   🍌 Predicting motion for scene ${scene.sceneIndex + 1}...`)
   
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   const prompt = `You are a cinematographer planning camera motion for a video segment.
 

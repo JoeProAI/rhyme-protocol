@@ -5,15 +5,17 @@ import {
 } from '@copilotkit/runtime';
 import { NextRequest } from 'next/server';
 
-const serviceAdapter = new OpenAIAdapter({
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY!,
-  } as any,
-});
-
-const runtime = new CopilotRuntime();
+function getServiceAdapter() {
+  return new OpenAIAdapter({
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY!,
+    } as any,
+  });
+}
 
 export const POST = async (req: NextRequest) => {
+  const runtime = new CopilotRuntime();
+  const serviceAdapter = getServiceAdapter();
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
     serviceAdapter,

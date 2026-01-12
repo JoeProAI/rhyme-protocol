@@ -7,8 +7,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getGenAI() {
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 /**
  * Generate the END frame by analyzing the START frame
@@ -23,7 +28,7 @@ export async function generateEndFrame(
   console.log(`  🎨 Nano Banana: Analyzing frame ${segmentIndex} and predicting 5s future...`)
   
   // Step 1: Use Gemini Vision to analyze current frame and predict future
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   // Remove data URL prefix if present
   const base64Data = startFrameBase64.includes(',') 
@@ -92,7 +97,7 @@ Maintain the exact same:
 `
     
     // Use Responses API with image input for better continuity
-    const response: any = await (openai as any).responses.create({
+    const response: any = await (getOpenAI() as any).responses.create({
       model: 'gpt-4o',
       input: [
         {
@@ -182,7 +187,7 @@ export async function predictSceneMotion(
   
   console.log(`🍌 Nano Banana: Predicting motion for segment ${segmentIndex + 1}...`)
   
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   // Remove data URL prefix if present
   const base64Data = startFrameBase64.includes(',') 

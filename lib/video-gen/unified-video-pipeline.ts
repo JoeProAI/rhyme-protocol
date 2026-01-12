@@ -31,8 +31,14 @@ import * as os from 'os'
 
 const execAsync = promisify(exec)
 const LUMA_API_BASE = 'https://api.lumalabs.ai/dream-machine/v1'
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+function getGenAI() {
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 type LumaDuration = '5s' | '9s'
 
@@ -72,7 +78,7 @@ Requirements:
 - Characters should be clearly visible and well-defined
 - Environment should have depth and atmosphere`
 
-  const response = await openai.images.generate({
+  const response = await getOpenAI().images.generate({
     model: 'gpt-image-1.5',
     prompt: fullPrompt,
     n: 1,
@@ -172,7 +178,7 @@ CRITICAL: Maintain perfect visual consistency:
 - Same environment and atmosphere
 - Natural 9-second progression from previous state`
 
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: 'gpt-image-1.5',
       prompt: fallbackPrompt,
       n: 1,
@@ -203,7 +209,7 @@ async function nanoBananaPredictFuture(
 ): Promise<string> {
   console.log(`  🍌 Nano Banana: Analyzing frame and predicting ${segmentSeconds}s future...`)
   
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   const analysisPrompt = `You are an expert cinematographer and animator analyzing a video frame.
 

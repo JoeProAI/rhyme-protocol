@@ -20,8 +20,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import OpenAI from 'openai'
 
 const LUMA_API_BASE = 'https://api.lumalabs.ai/dream-machine/v1'
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+function getGenAI() {
+  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 // Luma Ray-2 only supports 5s or 9s durations
 type LumaDuration = '5s' | '9s'
@@ -114,7 +120,7 @@ async function generateEndFrameWithGPT(startFrameBase64: string, prompt: string)
   
   try {
     // Use OpenAI Responses API with image input for better visual consistency
-    const response: any = await (openai as any).responses.create({
+    const response: any = await (getOpenAI() as any).responses.create({
       model: 'gpt-4o',
       input: [
         {
@@ -156,7 +162,7 @@ async function generateEndFrameWithGPT(startFrameBase64: string, prompt: string)
     // Fallback to standard DALL-E generation
     console.log(`  ⚠️ Responses API failed, trying DALL-E 3: ${error.message}`)
     
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: 'dall-e-3',
       prompt: prompt,
       n: 1,
@@ -253,7 +259,7 @@ async function nanoBananaGenerateEndFrame(
   const startFrameBase64 = await imageUrlToBase64(startFrameUrl)
   
   // Step 2: Use Gemini Vision to analyze and predict the future
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
   
   const analysisPrompt = `
 You are an expert cinematographer analyzing a video frame.
