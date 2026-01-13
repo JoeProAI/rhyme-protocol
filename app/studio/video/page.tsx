@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AuthGuard } from '@/components/AuthGuard'
 
 type VideoMode = 'regular' | 'music'
 type ViewState = 'idle' | 'generating' | 'complete' | 'error'
@@ -92,10 +93,11 @@ export default function VideoStudioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <div className="fixed top-0 left-0 w-full h-1 z-50 bg-accent" style={{ opacity: viewState === 'generating' ? 1 : 0, transition: 'opacity 0.3s' }} />
-      
-      <div className="max-w-4xl mx-auto px-6 py-16">
+    <AuthGuard>
+    <div className="min-h-screen py-16 px-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="fixed top-0 left-0 w-full h-1 z-50 bg-accent" style={{ opacity: viewState === 'generating' ? 1 : 0, transition: 'opacity 0.3s' }} />
+        
         <header className="mb-12 relative">
           <div className="absolute -left-6 top-0 w-1 h-full bg-accent" />
           <p className="font-mono text-[10px] tracking-[0.4em] text-muted uppercase mb-3">RHYME PROTOCOL</p>
@@ -308,10 +310,11 @@ export default function VideoStudioPage() {
 
         <footer className="mt-24 pt-8 border-t border-border-subtle">
           <p className="font-mono text-[9px] text-muted tracking-wider">
-            RHYME PROTOCOL / VIDEO GEN powered by Luma Ray-2
+            RHYME PROTOCOL / VIDEO GEN
           </p>
         </footer>
       </div>
     </div>
+    </AuthGuard>
   )
 }

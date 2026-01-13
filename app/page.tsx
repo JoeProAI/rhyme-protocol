@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Rhyme Protocol | AI Tools for Rap Artists',
-  description: 'The complete AI platform for rap artists. Generate lyrics with GPT and Grok, create album covers, and produce cinematic music videos.',
+  description: 'The complete AI platform for rap artists. Generate lyrics, create album covers, and produce cinematic music videos.',
   openGraph: {
     title: 'Rhyme Protocol | AI Tools for Rap Artists',
     description: 'Lyrics, covers, and music videos powered by AI',
@@ -14,21 +14,21 @@ const STUDIO_TOOLS = [
   {
     href: '/studio/lyrics',
     title: 'LYRIC_LAB',
-    description: 'Write bars with GPT 5.2 and Grok 4.1. Get rhyme suggestions, continue verses, or generate fresh content.',
+    description: 'Write bars with AI assistance. Get rhyme suggestions, continue verses, or generate fresh content.',
     iconPath: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z',
     available: true,
   },
   {
     href: '/studio/cover-art',
     title: 'COVER_ART',
-    description: 'Generate professional album covers and single artwork with GPT-Image-1.5. Multiple styles and moods.',
+    description: 'Generate professional album covers and single artwork. Multiple styles and moods.',
     iconPath: 'M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z',
     available: true,
   },
   {
     href: '/studio/video',
     title: 'VIDEO_GEN',
-    description: 'Generate cinematic videos with Luma Ray-2. Simple prompts to stunning visuals.',
+    description: 'Generate cinematic videos from simple prompts. Stunning visuals in seconds.',
     iconPath: 'M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z',
     available: true,
   },

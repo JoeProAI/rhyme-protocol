@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import { AuthGuard } from '@/components/AuthGuard';
 import { saveGeneration } from '@/lib/firestore-generations';
 
 type CoverStyle = 'album-cover' | 'single-cover' | 'mixtape' | 'ep';
@@ -154,6 +155,7 @@ export default function CoverArtStudio() {
   };
 
   return (
+    <AuthGuard>
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
@@ -362,5 +364,6 @@ export default function CoverArtStudio() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

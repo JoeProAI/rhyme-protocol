@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { AuthGuard } from '@/components/AuthGuard';
 
 type LyricStyle = 'trap' | 'conscious' | 'oldschool' | 'storytelling' | 'aggressive' | 'melodic';
 type AIModel = 'gpt' | 'grok' | 'both';
@@ -17,8 +18,8 @@ const STYLES: { value: LyricStyle; label: string; desc: string }[] = [
 ];
 
 const AI_MODELS: { value: AIModel; label: string; desc: string }[] = [
-  { value: 'gpt', label: 'GPT 5.2', desc: 'The Technician - Complex rhyme schemes' },
-  { value: 'grok', label: 'Grok 4.1', desc: 'The Provocateur - Bold and edgy' },
+  { value: 'gpt', label: 'The Technician', desc: 'Complex rhyme schemes' },
+  { value: 'grok', label: 'The Provocateur', desc: 'Bold and edgy' },
   { value: 'both', label: 'Both', desc: 'Compare outputs side by side' },
 ];
 
@@ -85,6 +86,7 @@ export default function LyricLab() {
   };
 
   return (
+    <AuthGuard>
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -100,7 +102,7 @@ export default function LyricLab() {
             <span className="text-accent">_LAB</span>
           </h1>
           <p className="text-text-secondary">
-            AI-powered lyric writing with GPT-4o and Grok
+            AI-powered lyric writing assistant
           </p>
         </div>
 
@@ -317,5 +319,6 @@ export default function LyricLab() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
