@@ -63,10 +63,10 @@ export default function Gallery() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <Link 
-            href="/studio" 
+            href="/" 
             className="text-text-secondary hover:text-accent transition-colors text-sm mb-4 inline-block"
           >
-            ← Back to Studio
+            ← Back to Home
           </Link>
           <h1 className="text-4xl font-display tracking-tight mb-2">
             <span className="text-text">MY</span>
@@ -93,19 +93,55 @@ export default function Gallery() {
           )}
         </div>
 
+        <div className="flex flex-wrap gap-3 mb-8">
+          <Link 
+            href="/studio/cover-art" 
+            className="px-4 py-2 border border-border-subtle hover:border-accent text-sm font-medium transition-colors"
+          >
+            Cover Art
+          </Link>
+          <Link 
+            href="/studio/lyrics" 
+            className="px-4 py-2 border border-border-subtle hover:border-accent text-sm font-medium transition-colors"
+          >
+            Lyrics
+          </Link>
+          <Link 
+            href="/studio/video" 
+            className="px-4 py-2 border border-border-subtle hover:border-accent text-sm font-medium transition-colors"
+          >
+            Video
+          </Link>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : generations.length === 0 ? (
           <div className="text-center py-20 border border-border-subtle bg-surface">
-            <p className="text-text-secondary mb-4">No creations yet</p>
-            <Link 
-              href="/studio/cover-art" 
-              className="inline-block px-6 py-3 bg-accent text-bg font-medium hover:bg-accent/90 transition-colors"
-            >
-              Create Cover Art
-            </Link>
+            <p className="text-text-secondary mb-6">No creations yet</p>
+            <p className="text-sm text-muted mb-4">Start creating with:</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link 
+                href="/studio/cover-art" 
+                className="px-6 py-3 bg-accent text-bg font-medium hover:bg-accent/90 transition-colors"
+              >
+                Cover Art
+              </Link>
+              <Link 
+                href="/studio/lyrics" 
+                className="px-6 py-3 border border-accent text-accent font-medium hover:bg-accent/10 transition-colors"
+              >
+                Lyrics
+              </Link>
+              <Link 
+                href="/studio/video" 
+                className="px-6 py-3 border border-accent text-accent font-medium hover:bg-accent/10 transition-colors"
+              >
+                Video
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
