@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { AuthGuard } from '@/components/AuthGuard';
 import { CostNotice } from '@/components/CostNotice';
@@ -41,6 +41,44 @@ export default function LyricLab() {
   const [results, setResults] = useState<LyricResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedLyrics, setSelectedLyrics] = useState('');
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [generatingVoice, setGeneratingVoice] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleListen = async (lyrics: string, index: number) => {
+    if (playingIndex === index && audioRef.current) {
+      audioRef.current.pause();
+      setPlayingIndex(null);
+      return;
+    }
+
+    setGeneratingVoice(index);
+    try {
+      const response = await fetch('/api/studio/voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: lyrics.slice(0, 1000) }),
+      });
+
+      if (!response.ok) throw new Error('Voice generation failed');
+
+      const { audioUrl } = await response.json();
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setPlayingIndex(null);
+      audio.play();
+      setPlayingIndex(index);
+    } catch (err) {
+      console.error('Voice error:', err);
+    } finally {
+      setGeneratingVoice(null);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!theme.trim()) return;
@@ -273,6 +311,13 @@ export default function LyricLab() {
                         <span className="text-muted text-sm ml-2">({result.source.toUpperCase()})</span>
                       </div>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => handleListen(result.lyrics, idx)}
+                          disabled={generatingVoice === idx}
+                          className="text-xs px-2 py-1 border border-border-subtle text-text-secondary hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+                        >
+                          {generatingVoice === idx ? '...' : playingIndex === idx ? 'Stop' : 'Listen'}
+                        </button>
                         <button
                           onClick={() => copyToClipboard(result.lyrics)}
                           className="text-xs px-2 py-1 border border-border-subtle text-text-secondary hover:border-accent hover:text-accent transition-colors"
