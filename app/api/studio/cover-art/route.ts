@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import OpenAI from 'openai';
-import { auth } from '@/lib/auth';
-import { saveGeneration } from '@/lib/generations';
 
 export const maxDuration = 60;
 
@@ -91,33 +88,10 @@ export async function POST(request: NextRequest) {
       throw new Error('No image data in response');
     }
 
-    // Save to user's generation history
-    let userId: string;
-    const session = await auth();
-    if (session?.user?.id) {
-      userId = session.user.id;
-    } else {
-      const cookieStore = cookies();
-      userId = cookieStore.get('anon_session')?.value || 'anonymous';
-    }
-
-    const saved = await saveGeneration(userId, {
-      type: 'cover_art',
-      imageUrl,
-      prompt,
-      metadata: {
-        style,
-        mood,
-        aspectRatio,
-        revisedPrompt,
-      },
-    });
-
     return NextResponse.json({
       success: true,
       imageUrl,
       revisedPrompt,
-      generationId: saved.id,
       metadata: {
         style,
         mood,

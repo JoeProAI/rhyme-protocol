@@ -1,43 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/components/AuthProvider'
+import { getGenerations, deleteGeneration as deleteGen, Generation } from '@/lib/firestore-generations'
 import Link from 'next/link'
 
-interface Generation {
-  id: string
-  type: 'cover_art' | 'video'
-  imageUrl: string
-  prompt: string
-  metadata: Record<string, any>
-  createdAt: string
-}
-
 export default function Gallery() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading, signOut } = useAuth()
   const [generations, setGenerations] = useState<Generation[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/generations')
-      .then(r => r.json())
-      .then(data => {
-        setGenerations(data.generations || [])
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error('Failed to load generations:', err)
-        setLoading(false)
-      })
-  }, [])
+    if (user) {
+      getGenerations(user.uid)
+        .then(gens => {
+          setGenerations(gens)
+          setLoading(false)
+        })
+        .catch(err => {
+          console.error('Failed to load generations:', err)
+          setLoading(false)
+        })
+    } else if (!authLoading) {
+      setLoading(false)
+    }
+  }, [user, authLoading])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this creation?')) return
+    if (!confirm('Delete this creation?') || !user) return
     
     setDeleting(id)
     try {
-      await fetch(`/api/generations?id=${id}`, { method: 'DELETE' })
+      await deleteGen(user.uid, id)
       setGenerations(prev => prev.filter(g => g.id !== id))
     } catch (err) {
       console.error('Failed to delete:', err)
@@ -78,15 +73,23 @@ export default function Gallery() {
             <span className="text-accent">_CREATIONS</span>
           </h1>
           <p className="text-text-secondary">
-            {session?.user ? `Signed in as ${session.user.email}` : 'Your generated artwork (this session)'}
+            {user ? `Signed in as ${user.email || (user.isAnonymous ? 'Guest' : 'User')}` : 'Sign in to view your creations'}
           </p>
-          {!session?.user && (
+          {!user && (
             <Link 
               href="/auth/signin" 
               className="inline-block mt-2 text-sm text-accent hover:underline"
             >
-              Sign in to save across devices
+              Sign in to get started
             </Link>
+          )}
+          {user && (
+            <button 
+              onClick={() => signOut()}
+              className="inline-block mt-2 text-sm text-muted hover:text-accent transition-colors"
+            >
+              Sign out
+            </button>
           )}
         </div>
 

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { saveGeneration } from '@/lib/firestore-generations';
 
 type CoverStyle = 'album-cover' | 'single-cover' | 'mixtape' | 'ep';
 type CoverMood = 'dark' | 'vibrant' | 'minimal' | 'luxury' | 'street' | 'abstract';
@@ -24,6 +26,7 @@ const MOODS: { value: CoverMood; label: string }[] = [
 ];
 
 export default function CoverArtStudio() {
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<CoverStyle>('album-cover');
   const [mood, setMood] = useState<CoverMood>('vibrant');
@@ -60,6 +63,20 @@ export default function CoverArtStudio() {
         revisedPrompt: data.revisedPrompt,
       });
       setEditCount(0);
+
+      // Save to user's gallery if signed in
+      if (user) {
+        try {
+          await saveGeneration(user.uid, {
+            type: 'cover_art',
+            imageUrl: data.imageUrl,
+            prompt,
+            metadata: { style, mood, aspectRatio, revisedPrompt: data.revisedPrompt },
+          });
+        } catch (saveErr) {
+          console.error('Failed to save to gallery:', saveErr);
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
