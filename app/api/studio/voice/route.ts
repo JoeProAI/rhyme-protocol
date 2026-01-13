@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
+// Curated voices for rap/hip-hop content
+const RAP_VOICES = [
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', style: 'Deep & Smooth' },
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', style: 'Clear & Confident' },
+  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', style: 'Young & Energetic' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', style: 'Soft & Expressive' },
+  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', style: 'Warm & Narrative' },
+  { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli', style: 'Youthful & Bright' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', style: 'Deep & Authoritative' },
+  { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', style: 'Crisp & Strong' },
+]
+
 export async function POST(req: NextRequest) {
   if (!ELEVENLABS_API_KEY) {
     return NextResponse.json(
@@ -66,31 +78,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  if (!ELEVENLABS_API_KEY) {
-    return NextResponse.json({ voices: [] })
-  }
-
-  try {
-    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-      },
-    })
-
-    if (!response.ok) {
-      return NextResponse.json({ voices: [] })
-    }
-
-    const data = await response.json()
-    const voices = data.voices?.map((v: any) => ({
-      id: v.voice_id,
-      name: v.name,
-      category: v.category,
-      labels: v.labels,
-    })) || []
-
-    return NextResponse.json({ voices })
-  } catch (error) {
-    return NextResponse.json({ voices: [] })
-  }
+  // Return curated rap voices (works without API key for selection)
+  return NextResponse.json({ voices: RAP_VOICES })
 }
