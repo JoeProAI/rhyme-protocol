@@ -36,21 +36,21 @@ const STUDIO_TOOLS = [
 
 export default function Home() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] py-16 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-[calc(100vh-4rem)] py-12 px-4 w-full overflow-x-hidden">
+      <div className="max-w-5xl mx-auto w-full">
         {/* Hero */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-display tracking-tight mb-6">
+        <div className="text-center mb-12 px-2">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-display tracking-tight mb-4 break-words">
             <span className="text-text">RHYME</span>
             <span className="text-accent">_PROTOCOL</span>
           </h1>
-          <p className="text-xl md:text-2xl text-text-secondary font-light max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl md:text-2xl text-text-secondary font-light max-w-2xl mx-auto px-2">
             AI-powered tools for rap artists. From lyrics to visuals.
           </p>
         </div>
 
         {/* Studio Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16 px-1">
           {STUDIO_TOOLS.map((tool) => {
             const CardContent = (
               <>
@@ -115,15 +115,15 @@ export default function Home() {
         </div>
 
         {/* Tech Stack */}
-        <div className="text-center pt-8 border-t border-border-subtle">
-          <p className="text-sm text-muted mb-4">Powered by</p>
-          <div className="flex flex-wrap justify-center gap-4 text-text-secondary text-sm">
+        <div className="text-center pt-6 sm:pt-8 border-t border-border-subtle mx-1">
+          <p className="text-xs sm:text-sm text-muted mb-3">Powered by</p>
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-text-secondary text-xs sm:text-sm">
             <span>GPT 5.2</span>
-            <span className="text-border-subtle">|</span>
+            <span className="text-border-subtle hidden sm:inline">|</span>
             <span>Grok 4.1</span>
-            <span className="text-border-subtle">|</span>
+            <span className="text-border-subtle hidden sm:inline">|</span>
             <span>GPT-Image-1.5</span>
-            <span className="text-border-subtle">|</span>
+            <span className="text-border-subtle hidden sm:inline">|</span>
             <span>Luma Ray-2</span>
           </div>
         </div>

@@ -163,8 +163,13 @@ TECHNICAL REQUIREMENTS:
 - MANDATORY: At least 2 internal rhymes per bar
 - Include minimum ONE double entendre per 4 bars
 - Include minimum ONE callback or setup/payoff per verse
-- No slurs or hate speech
 - Output ONLY the lyrics - no titles, labels, or explanations
+
+CONTENT POLICY:
+- Adult themes, profanity, and explicit content are ALLOWED
+- Street language, drug references, and sexual content are fine
+- Match the raw authenticity of real hip-hop
+- ONLY restriction: No content promoting illegal violence against specific individuals/groups
 
 QUALITY CHECK before output:
 - Are ALL end rhymes multisyllabic? Single syllable = rewrite
@@ -194,6 +199,7 @@ CONTINUATION RULES:
 - Continue the narrative/emotional thread seamlessly
 - The transition should be invisible - like they wrote it in one session
 - ${bars} new bars that feel like the natural next chapter
+- Adult content, profanity, and explicit themes are allowed - match the artist's tone
 
 Output ONLY the new bars - no labels or explanations.`;
         userPrompt = `Existing lyrics to continue from:
@@ -218,6 +224,7 @@ YOUR TASK: Polish these lyrics with SURGICAL PRECISION.
 - Fix technical issues (flow, syllables, rhymes) with minimal word changes  
 - Elevate weak bars while preserving the original idea
 - The artist should recognize 80%+ of their original words
+- Preserve all profanity, explicit content, and adult themes from the original
 
 Output the improved version - same structure, sharper execution. No explanations.`;
         userPrompt = `Original lyrics to polish:
@@ -246,7 +253,9 @@ CONTENT DEPTH:
 FORMAT: 5 complete bars, numbered. Each bar should:
 1. Rhyme with 2+ syllables from the original
 2. Have its own internal rhyme structure
-3. Say something substantive, not filler`;
+3. Say something substantive, not filler
+
+Adult themes, profanity, and explicit content are allowed - keep it raw and authentic.`;
         userPrompt = `Line to rhyme with:
 "${existingLyrics}"
 
