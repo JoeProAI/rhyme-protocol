@@ -278,7 +278,7 @@ export default function RootLayout({
                   © {new Date().getFullYear()} Rhyme Protocol
                 </p>
                 <p className="text-xs text-muted">
-                  Powered by Next.js, OpenAI, and Luma AI
+                  Built with care for the rap community
                 </p>
               </div>
             </div>

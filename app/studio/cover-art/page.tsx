@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthGuard } from '@/components/AuthGuard';
+import { CostNotice } from '@/components/CostNotice';
 import { saveGeneration } from '@/lib/firestore-generations';
 
 type CoverStyle = 'album-cover' | 'single-cover' | 'mixtape' | 'ep';
@@ -173,6 +174,10 @@ export default function CoverArtStudio() {
           <p className="text-text-secondary">
             Generate professional album covers and artwork with AI
           </p>
+        </div>
+
+        <div className="mb-8">
+          <CostNotice type="cover-art" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { AuthGuard } from '@/components/AuthGuard';
+import { CostNotice } from '@/components/CostNotice';
 
 type LyricStyle = 'trap' | 'conscious' | 'oldschool' | 'storytelling' | 'aggressive' | 'melodic';
 type AIModel = 'gpt' | 'grok' | 'both';
@@ -104,6 +105,10 @@ export default function LyricLab() {
           <p className="text-text-secondary">
             AI-powered lyric writing assistant
           </p>
+        </div>
+
+        <div className="mb-8">
+          <CostNotice type="lyrics" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

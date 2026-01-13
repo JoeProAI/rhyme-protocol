@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AuthGuard } from '@/components/AuthGuard'
+import { CostNotice } from '@/components/CostNotice'
 
 type VideoMode = 'regular' | 'music'
 type ViewState = 'idle' | 'generating' | 'complete' | 'error'
@@ -103,6 +104,10 @@ export default function VideoStudioPage() {
           <p className="font-mono text-[10px] tracking-[0.4em] text-muted uppercase mb-3">RHYME PROTOCOL</p>
           <h1 className="text-4xl font-display tracking-tight text-text">Video<span className="text-accent">_</span>Generator</h1>
         </header>
+
+        <div className="mb-8">
+          <CostNotice type="video" />
+        </div>
 
         <div className="flex gap-2 mb-12">
           <button
