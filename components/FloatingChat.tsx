@@ -58,7 +58,7 @@ export default function FloatingChat() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-accent hover:bg-accent/90 text-bg rounded-full shadow-lg flex items-center justify-center transition-colors"
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -72,17 +72,17 @@ export default function FloatingChat() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-surface rounded-none shadow-2xl border border-border-subtle flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700">
+            <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-accent">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-semibold text-white">AI Assistant</span>
+                <span className="font-semibold text-bg">AI Assistant</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-white/80 hover:text-white transition-colors"
+                className="text-bg/80 hover:text-bg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -91,7 +91,7 @@ export default function FloatingChat() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 && (
-                <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
+                <div className="text-center text-muted mt-8">
                   <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">Ask me anything about JoePro AI services!</p>
                 </div>
@@ -107,8 +107,8 @@ export default function FloatingChat() {
                   <div
                     className={`max-w-[80%] p-3 rounded-2xl ${
                       msg.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-sm'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm'
+                        ? 'bg-accent text-bg rounded-br-sm'
+                        : 'bg-bg border border-border-subtle text-text rounded-bl-sm'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -122,15 +122,15 @@ export default function FloatingChat() {
                   animate={{ opacity: 1 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-2xl rounded-bl-sm">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <div className="bg-bg border border-border-subtle p-3 rounded-2xl rounded-bl-sm">
+                    <Loader2 className="w-5 h-5 animate-spin text-accent" />
                   </div>
                 </motion.div>
               )}
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-t border-border-subtle">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -138,13 +138,13 @@ export default function FloatingChat() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   placeholder="Type your message..."
-                  className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white placeholder-gray-500"
+                  className="flex-1 px-4 py-2 bg-bg border border-border-subtle rounded-none focus:outline-none focus:border-accent text-text placeholder-muted"
                   disabled={loading}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={loading || !input.trim()}
-                  className="w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-full flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                  className="w-10 h-10 bg-accent hover:bg-accent/90 disabled:bg-muted/30 text-bg rounded-none flex items-center justify-center transition-colors disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
                 </button>

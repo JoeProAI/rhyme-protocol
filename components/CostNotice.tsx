@@ -20,7 +20,7 @@ export function CostNotice({ type }: { type: 'cover-art' | 'video' | 'lyrics' })
         className="w-full text-left flex items-center justify-between"
       >
         <span className="text-muted">
-          This costs me <span className="text-accent font-mono">{cost}</span> per generation
+          This costs the platform <span className="text-accent font-mono">{cost}</span> per generation
         </span>
         <svg 
           width="16" 
@@ -38,7 +38,7 @@ export function CostNotice({ type }: { type: 'cover-art' | 'video' | 'lyrics' })
       {expanded && (
         <div className="mt-4 pt-4 border-t border-border-subtle space-y-3">
           <p className="text-muted">
-            This tool is free to use. I cover the AI costs out of pocket to help artists create.
+            This tool is free to use. The platform covers AI costs to help artists create.
           </p>
           <p className="text-text-secondary">
             If you find value in this, consider supporting:
