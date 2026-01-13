@@ -4,8 +4,9 @@ import { db, storage } from './firebase'
 
 export interface Generation {
   id: string
-  type: 'cover_art' | 'video'
+  type: 'cover_art' | 'video' | 'audio_voice' | 'audio_sfx' | 'audio_music'
   imageUrl: string
+  audioUrl?: string
   prompt: string
   metadata: Record<string, any>
   createdAt: Date
@@ -17,17 +18,25 @@ export interface Generation {
 export async function saveImageToStorage(userId: string, imageData: string, generationId: string): Promise<string> {
   // If already a permanent URL (not base64), return as-is
   if (!imageData.startsWith('data:')) {
-    // For external URLs, we need to fetch and re-upload
-    // For now, just return the URL (it may expire)
     return imageData
   }
 
   const storageRef = ref(storage, `generations/${userId}/${generationId}.png`)
-  
-  // Upload base64 image
   await uploadString(storageRef, imageData, 'data_url')
-  
-  // Get permanent download URL
+  const downloadUrl = await getDownloadURL(storageRef)
+  return downloadUrl
+}
+
+/**
+ * Save audio to Firebase Storage and return permanent URL
+ */
+export async function saveAudioToStorage(userId: string, audioData: string, generationId: string): Promise<string> {
+  if (!audioData.startsWith('data:')) {
+    return audioData
+  }
+
+  const storageRef = ref(storage, `generations/${userId}/${generationId}.mp3`)
+  await uploadString(storageRef, audioData, 'data_url')
   const downloadUrl = await getDownloadURL(storageRef)
   return downloadUrl
 }
@@ -41,19 +50,32 @@ export async function saveGeneration(
 ): Promise<Generation> {
   const generationId = `gen_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
   
-  // Save image to storage and get permanent URL
+  // Save image to storage if present
   let permanentImageUrl = generation.imageUrl
-  try {
-    permanentImageUrl = await saveImageToStorage(userId, generation.imageUrl, generationId)
-  } catch (error) {
-    console.error('Failed to save to storage, using original URL:', error)
+  if (generation.imageUrl) {
+    try {
+      permanentImageUrl = await saveImageToStorage(userId, generation.imageUrl, generationId)
+    } catch (error) {
+      console.error('Failed to save image to storage:', error)
+    }
+  }
+
+  // Save audio to storage if present
+  let permanentAudioUrl = generation.audioUrl
+  if (generation.audioUrl) {
+    try {
+      permanentAudioUrl = await saveAudioToStorage(userId, generation.audioUrl, generationId)
+    } catch (error) {
+      console.error('Failed to save audio to storage:', error)
+    }
   }
 
   const generationsRef = collection(db, 'users', userId, 'generations')
   
   const docRef = await addDoc(generationsRef, {
     type: generation.type,
-    imageUrl: permanentImageUrl,
+    imageUrl: permanentImageUrl || '',
+    audioUrl: permanentAudioUrl || '',
     prompt: generation.prompt,
     metadata: generation.metadata,
     createdAt: serverTimestamp(),
@@ -62,7 +84,8 @@ export async function saveGeneration(
   return {
     id: docRef.id,
     type: generation.type,
-    imageUrl: permanentImageUrl,
+    imageUrl: permanentImageUrl || '',
+    audioUrl: permanentAudioUrl,
     prompt: generation.prompt,
     metadata: generation.metadata,
     createdAt: new Date(),
@@ -83,7 +106,8 @@ export async function getGenerations(userId: string): Promise<Generation[]> {
     return {
       id: doc.id,
       type: data.type,
-      imageUrl: data.imageUrl,
+      imageUrl: data.imageUrl || '',
+      audioUrl: data.audioUrl || undefined,
       prompt: data.prompt,
       metadata: data.metadata || {},
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),

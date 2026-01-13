@@ -112,6 +112,12 @@ export default function Gallery() {
           >
             Video
           </Link>
+          <Link 
+            href="/studio/audio" 
+            className="px-4 py-2 border border-border-subtle hover:border-accent text-sm font-medium transition-colors"
+          >
+            Audio
+          </Link>
         </div>
 
         {loading ? (
@@ -141,43 +147,82 @@ export default function Gallery() {
               >
                 Video
               </Link>
+              <Link 
+                href="/studio/audio" 
+                className="px-6 py-3 border border-accent text-accent font-medium hover:bg-accent/10 transition-colors"
+              >
+                Audio
+              </Link>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {generations.map((gen) => (
-              <div key={gen.id} className="border border-border-subtle bg-surface group">
-                <div className="aspect-square relative overflow-hidden">
-                  <img 
-                    src={gen.imageUrl} 
-                    alt={gen.prompt}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button
-                      onClick={() => handleDownload(gen.imageUrl, gen.id)}
-                      className="px-4 py-2 bg-accent text-bg text-sm font-medium hover:bg-accent/90"
-                    >
-                      Download
-                    </button>
-                    <button
-                      onClick={() => handleDelete(gen.id)}
-                      disabled={deleting === gen.id}
-                      className="px-4 py-2 bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50"
-                    >
-                      {deleting === gen.id ? '...' : 'Delete'}
-                    </button>
+            {generations.map((gen) => {
+              const isAudio = gen.type.startsWith('audio_')
+              
+              return (
+                <div key={gen.id} className="border border-border-subtle bg-surface group">
+                  {isAudio ? (
+                    <div className="aspect-square relative overflow-hidden bg-bg flex flex-col items-center justify-center p-4">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" className="mb-4">
+                        <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Z"/>
+                      </svg>
+                      {gen.audioUrl && (
+                        <audio src={gen.audioUrl} controls className="w-full max-w-[200px]" />
+                      )}
+                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {gen.audioUrl && (
+                          <a
+                            href={gen.audioUrl}
+                            download={`${gen.id}.mp3`}
+                            className="px-3 py-1 bg-accent text-bg text-xs font-medium hover:bg-accent/90"
+                          >
+                            Download
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDelete(gen.id)}
+                          disabled={deleting === gen.id}
+                          className="px-3 py-1 bg-red-500 text-white text-xs font-medium hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {deleting === gen.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="aspect-square relative overflow-hidden">
+                      <img 
+                        src={gen.imageUrl} 
+                        alt={gen.prompt}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => handleDownload(gen.imageUrl, gen.id)}
+                          className="px-4 py-2 bg-accent text-bg text-sm font-medium hover:bg-accent/90"
+                        >
+                          Download
+                        </button>
+                        <button
+                          onClick={() => handleDelete(gen.id)}
+                          disabled={deleting === gen.id}
+                          className="px-4 py-2 bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {deleting === gen.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="text-sm text-text line-clamp-2 mb-2">{gen.prompt}</p>
+                    <div className="flex items-center justify-between text-xs text-muted">
+                      <span className="uppercase">{gen.type.replace(/_/g, ' ')}</span>
+                      <span>{new Date(gen.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4">
-                  <p className="text-sm text-text line-clamp-2 mb-2">{gen.prompt}</p>
-                  <div className="flex items-center justify-between text-xs text-muted">
-                    <span className="uppercase">{gen.type.replace('_', ' ')}</span>
-                    <span>{new Date(gen.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

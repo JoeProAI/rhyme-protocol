@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { AuthGuard } from '@/components/AuthGuard'
 import { CostNotice } from '@/components/CostNotice'
+import { useAuth } from '@/components/AuthProvider'
+import { saveGeneration } from '@/lib/firestore-generations'
 
 type AudioMode = 'voice' | 'sfx' | 'music'
 
@@ -34,6 +36,7 @@ const MUSIC_GENRES = [
 ]
 
 export default function AudioStudio() {
+  const { user } = useAuth()
   const [mode, setMode] = useState<AudioMode>('voice')
   const [voices, setVoices] = useState<Voice[]>([])
   const [selectedVoice, setSelectedVoice] = useState('')
@@ -47,6 +50,7 @@ export default function AudioStudio() {
   const [generating, setGenerating] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -66,6 +70,7 @@ export default function AudioStudio() {
     setGenerating(true)
     setError(null)
     setAudioUrl(null)
+    setSaved(false)
 
     try {
       const res = await fetch('/api/studio/voice', {
@@ -76,6 +81,18 @@ export default function AudioStudio() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setAudioUrl(data.audioUrl)
+      
+      // Save to gallery
+      if (user && data.audioUrl) {
+        await saveGeneration(user.uid, {
+          type: 'audio_voice',
+          imageUrl: '',
+          audioUrl: data.audioUrl,
+          prompt: text.substring(0, 100),
+          metadata: { voiceId: selectedVoice }
+        })
+        setSaved(true)
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -88,6 +105,7 @@ export default function AudioStudio() {
     setGenerating(true)
     setError(null)
     setAudioUrl(null)
+    setSaved(false)
 
     try {
       const res = await fetch('/api/studio/sound-effects', {
@@ -101,6 +119,17 @@ export default function AudioStudio() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setAudioUrl(data.audioUrl)
+      
+      if (user && data.audioUrl) {
+        await saveGeneration(user.uid, {
+          type: 'audio_sfx',
+          imageUrl: '',
+          audioUrl: data.audioUrl,
+          prompt: sfxPrompt,
+          metadata: { duration: sfxDuration }
+        })
+        setSaved(true)
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -113,6 +142,7 @@ export default function AudioStudio() {
     setGenerating(true)
     setError(null)
     setAudioUrl(null)
+    setSaved(false)
 
     try {
       const res = await fetch('/api/studio/music', {
@@ -128,6 +158,17 @@ export default function AudioStudio() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setAudioUrl(data.audioUrl)
+      
+      if (user && data.audioUrl) {
+        await saveGeneration(user.uid, {
+          type: 'audio_music',
+          imageUrl: '',
+          audioUrl: data.audioUrl,
+          prompt: `${musicGenre}: ${musicPrompt}`,
+          metadata: { genre: musicGenre, duration: musicDuration, instrumental }
+        })
+        setSaved(true)
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -334,47 +375,79 @@ export default function AudioStudio() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-text mb-2">
-                    Duration: {musicDuration}s
-                  </label>
+              {/* Duration Presets */}
+              <div>
+                <label className="block text-sm font-medium text-text mb-2">
+                  Duration
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {[
+                    { sec: 30, label: '30s', cost: '~$0.15' },
+                    { sec: 60, label: '1 min', cost: '~$0.30' },
+                    { sec: 120, label: '2 min', cost: '~$0.60' },
+                    { sec: 180, label: '3 min', cost: '~$0.90' },
+                  ].map(opt => (
+                    <button
+                      key={opt.sec}
+                      onClick={() => setMusicDuration(opt.sec)}
+                      className={`p-2 border text-center transition-colors ${
+                        musicDuration === opt.sec
+                          ? 'border-accent bg-accent/10'
+                          : 'border-border-subtle hover:border-border'
+                      }`}
+                    >
+                      <div className={`text-sm font-medium ${musicDuration === opt.sec ? 'text-accent' : 'text-text'}`}>
+                        {opt.label}
+                      </div>
+                      <div className="text-xs text-muted">{opt.cost}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted">Custom:</span>
                   <input
                     type="range"
                     min="10"
-                    max="120"
+                    max="300"
                     step="10"
                     value={musicDuration}
                     onChange={(e) => setMusicDuration(parseInt(e.target.value))}
-                    className="w-full accent-accent"
+                    className="flex-1 accent-accent"
                   />
+                  <span className="text-sm font-mono text-accent w-16 text-right">
+                    {musicDuration >= 60 ? `${Math.floor(musicDuration/60)}:${(musicDuration%60).toString().padStart(2,'0')}` : `${musicDuration}s`}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text mb-2">
-                    Type
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setInstrumental(true)}
-                      className={`flex-1 py-2 border text-xs font-medium transition-colors ${
-                        instrumental
-                          ? 'border-accent bg-accent/10 text-accent'
-                          : 'border-border-subtle text-muted'
-                      }`}
-                    >
-                      Instrumental
-                    </button>
-                    <button
-                      onClick={() => setInstrumental(false)}
-                      className={`flex-1 py-2 border text-xs font-medium transition-colors ${
-                        !instrumental
-                          ? 'border-accent bg-accent/10 text-accent'
-                          : 'border-border-subtle text-muted'
-                      }`}
-                    >
-                      With Vocals
-                    </button>
-                  </div>
+                <p className="text-xs text-muted mt-2">
+                  Est. cost: <span className="text-accent font-mono">${(musicDuration * 0.005).toFixed(2)}</span> • Max 5 min
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text mb-2">
+                  Type
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setInstrumental(true)}
+                    className={`flex-1 py-2 border text-xs font-medium transition-colors ${
+                      instrumental
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border-subtle text-muted'
+                    }`}
+                  >
+                    Instrumental
+                  </button>
+                  <button
+                    onClick={() => setInstrumental(false)}
+                    className={`flex-1 py-2 border text-xs font-medium transition-colors ${
+                      !instrumental
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border-subtle text-muted'
+                    }`}
+                  >
+                    With Vocals
+                  </button>
                 </div>
               </div>
 
@@ -399,7 +472,14 @@ export default function AudioStudio() {
           {audioUrl && (
             <div className="mt-8 p-6 border border-accent/30 bg-accent/5">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-text">Generated Audio</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-text">Generated Audio</span>
+                  {saved && (
+                    <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30">
+                      Saved to Gallery
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={downloadAudio}
                   className="text-xs px-3 py-1 border border-accent text-accent hover:bg-accent/10 transition-colors"

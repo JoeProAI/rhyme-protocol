@@ -32,6 +32,13 @@ const STUDIO_TOOLS = [
     iconPath: 'M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z',
     available: true,
   },
+  {
+    href: '/studio/audio',
+    title: 'AUDIO_LAB',
+    description: 'Voice synthesis, sound effects, and beat generation. Full audio toolkit.',
+    iconPath: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Z',
+    available: true,
+  },
 ];
 
 export default function Home() {
