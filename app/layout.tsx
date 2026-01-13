@@ -125,6 +125,7 @@ const jsonLd = {
 
 // Navigation items
 const navItems = [
+  { href: "/studio/lyrics", label: "Lyrics" },
   { href: "/studio/cover-art", label: "Cover Art" },
   { href: "/studio/video", label: "Video" },
   { href: "/studio/gallery", label: "My Creations" },
