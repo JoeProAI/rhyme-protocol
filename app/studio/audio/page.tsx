@@ -59,14 +59,27 @@ export default function AudioStudio() {
   const [saved, setSaved] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // Default to Adam (Deep & Smooth) - good for rap
+  const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'
+  
   useEffect(() => {
     fetch('/api/studio/voice')
       .then(res => res.json())
       .then(data => {
-        setVoices(data.voices || [])
-        if (data.voices?.length > 0) {
-          setSelectedVoice(data.voices[0].id)
-        }
+        const allVoices = data.voices || []
+        // Sort to put curated rap voices first
+        const rapVoiceIds = ['pNInz6obpgDQGcFmaJgB', '21m00Tcm4TlvDq8ikWAM', 'TxGEqnHWrfWFTfGW9XjX', 'VR6AewLTigWG4xSOukaG']
+        const sorted = [...allVoices].sort((a, b) => {
+          const aIsRap = rapVoiceIds.includes(a.id)
+          const bIsRap = rapVoiceIds.includes(b.id)
+          if (aIsRap && !bIsRap) return -1
+          if (!aIsRap && bIsRap) return 1
+          return 0
+        })
+        setVoices(sorted)
+        // Default to Adam or first available
+        const hasDefault = sorted.some(v => v.id === DEFAULT_VOICE_ID)
+        setSelectedVoice(hasDefault ? DEFAULT_VOICE_ID : sorted[0]?.id || '')
       })
       .catch(console.error)
   }, [])
