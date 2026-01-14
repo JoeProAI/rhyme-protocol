@@ -289,7 +289,7 @@ export default function LyricLab() {
               disabled={isGenerating || !theme.trim()}
               className="w-full py-4 bg-accent text-bg font-medium text-lg transition-all hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGenerating ? 'Writing...' : 'Generate Lyrics'}
+              {isGenerating ? 'Crafting bars...' : 'Generate Lyrics'}
             </button>
 
             {error && (
@@ -328,7 +328,7 @@ export default function LyricLab() {
             {isGenerating ? (
               <div className="border border-border-subtle bg-surface p-12 text-center">
                 <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-text-secondary">AI is writing...</p>
+                <p className="text-text-secondary">Crafting bars...</p>
               </div>
             ) : results.length > 0 ? (
               <div className={`grid gap-6 ${results.length > 1 ? 'md:grid-cols-2' : ''}`}>

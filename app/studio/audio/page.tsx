@@ -302,7 +302,7 @@ export default function AudioStudio() {
                 disabled={generating || !text.trim()}
                 className="w-full py-3 bg-accent text-bg font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {generating ? 'Generating...' : 'Generate Speech'}
+                {generating ? 'Synthesizing...' : 'Generate Speech'}
               </button>
               
               {/* Show chunk progress and continue button */}
@@ -318,7 +318,7 @@ export default function AudioStudio() {
                         disabled={generating}
                         className="px-4 py-1 text-sm border border-accent text-accent hover:bg-accent/10 disabled:opacity-50 transition-colors"
                       >
-                        {generating ? 'Generating...' : 'Continue to Next Part'}
+                        {generating ? 'Synthesizing...' : 'Continue to Next Part'}
                       </button>
                     )}
                   </div>
@@ -385,7 +385,7 @@ export default function AudioStudio() {
                 disabled={generating || !sfxPrompt.trim()}
                 className="w-full py-3 bg-accent text-bg font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {generating ? 'Generating...' : 'Generate Sound Effect'}
+                {generating ? 'Creating SFX...' : 'Generate Sound Effect'}
               </button>
             </div>
           )}
@@ -553,7 +553,7 @@ export default function AudioStudio() {
             <div className="mt-8 p-6 border border-border-subtle text-center">
               <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-muted text-sm">
-                {mode === 'music' ? 'Creating your beat...' : 'Generating audio...'}
+                {mode === 'music' ? 'Cooking up your beat...' : 'Processing audio...'}
               </p>
             </div>
           )}

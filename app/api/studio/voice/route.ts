@@ -30,37 +30,26 @@ function preprocessLyrics(text: string): string {
   // Emphasize words in ALL CAPS by adding slight pause before
   processed = processed.replace(/\b([A-Z]{2,})\b/g, '... $1')
   
-  // Common rap pronunciation fixes
-  const pronunciations: Record<string, string> = {
-    "n***a": "nigga",
-    "finna": "finna",
-    "tryna": "tryna", 
-    "gonna": "gonna",
-    "gotta": "gotta",
-    "wanna": "wanna",
-    "bout": "'bout",
-    "em": "'em",
-    "cause": "'cause",
-    "til": "'til",
-    "ya": "ya",
-    "aint": "ain't",
-    "dont": "don't",
-    "cant": "can't",
-    "wont": "won't",
-    "im": "I'm",
-    "ive": "I've",
-    "id": "I'd",
-    "ill": "I'll",
-    "yall": "y'all",
-    "wassup": "what's up",
-    "whatchu": "what you",
-    "lemme": "let me",
-    "gimme": "give me",
-  }
+  // Common rap pronunciation fixes (using simple string replace to avoid regex issues)
+  const pronunciations: [string, string][] = [
+    ["finna", "finna"],
+    ["tryna", "tryna"], 
+    ["gonna", "gonna"],
+    ["gotta", "gotta"],
+    ["wanna", "wanna"],
+    ["aint", "ain't"],
+    ["dont", "don't"],
+    ["cant", "can't"],
+    ["wont", "won't"],
+    ["yall", "y'all"],
+    ["wassup", "what's up"],
+    ["whatchu", "what you"],
+    ["lemme", "let me"],
+    ["gimme", "give me"],
+  ]
   
-  for (const [slang, pronunciation] of Object.entries(pronunciations)) {
-    const regex = new RegExp(`\\b${slang}\\b`, 'gi')
-    processed = processed.replace(regex, pronunciation)
+  for (const [slang, pronunciation] of pronunciations) {
+    processed = processed.split(new RegExp(`\\b${slang}\\b`, 'gi')).join(pronunciation)
   }
   
   // Add emphasis markers for rhyming words at end of lines

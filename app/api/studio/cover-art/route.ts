@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       n: 1,
       size: size as '1024x1024' | '1536x1024' | '1024x1536',
       quality: 'high',
+      response_format: 'b64_json',
     });
 
     if (!response.data || response.data.length === 0) {

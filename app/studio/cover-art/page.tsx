@@ -269,7 +269,7 @@ export default function CoverArtStudio() {
               disabled={isGenerating || !prompt.trim()}
               className="w-full py-4 bg-accent text-bg font-medium text-lg transition-all hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGenerating ? 'Generating...' : 'Generate Cover Art'}
+              {isGenerating ? 'Creating artwork...' : 'Generate Cover Art'}
             </button>
 
             {error && (
