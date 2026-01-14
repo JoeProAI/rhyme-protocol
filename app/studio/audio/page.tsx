@@ -13,6 +13,8 @@ interface Voice {
   id: string
   name: string
   style: string
+  preview_url?: string
+  category?: string
 }
 
 const SFX_PRESETS = [

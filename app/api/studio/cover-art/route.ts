@@ -60,16 +60,16 @@ export async function POST(request: NextRequest) {
 
     const fullPrompt = `Create album cover art: ${prompt}. Style: ${stylePrompt}. Mood: ${moodPrompt}. Professional quality, no text or typography, suitable for music streaming platforms. High resolution, visually striking composition.`;
 
-    console.log(`[Cover Art] Generating with gpt-image-1.5: ${fullPrompt.substring(0, 100)}...`);
+    console.log(`[Cover Art] Generating with gpt-image-1: ${fullPrompt.substring(0, 100)}...`);
 
     const openai = getOpenAI();
     
     const response = await openai.images.generate({
-      model: 'gpt-image-1.5',
+      model: 'gpt-image-1',
       prompt: fullPrompt,
       n: 1,
       size: size as '1024x1024' | '1536x1024' | '1024x1536',
-      quality: 'high',
+      quality: 'hd',
       response_format: 'b64_json',
     });
 

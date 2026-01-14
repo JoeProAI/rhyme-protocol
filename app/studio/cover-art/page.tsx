@@ -69,15 +69,21 @@ export default function CoverArtStudio() {
       // Save to user's gallery if signed in
       if (user) {
         try {
-          await saveGeneration(user.uid, {
+          console.log('Saving to gallery for user:', user.uid);
+          const saved = await saveGeneration(user.uid, {
             type: 'cover_art',
             imageUrl: data.imageUrl,
             prompt,
             metadata: { style, mood, aspectRatio, revisedPrompt: data.revisedPrompt },
           });
-        } catch (saveErr) {
-          console.error('Failed to save to gallery:', saveErr);
+          console.log('Saved to gallery:', saved.id);
+        } catch (saveErr: any) {
+          console.error('Failed to save to gallery:', saveErr?.message || saveErr);
+          // Show error to user
+          setError(`Image generated but failed to save: ${saveErr?.message || 'Unknown error'}`);
         }
+      } else {
+        console.log('User not signed in, skipping gallery save');
       }
     } catch (err: any) {
       setError(err.message);

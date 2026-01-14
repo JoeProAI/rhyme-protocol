@@ -176,6 +176,35 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  // Return curated rap voices (works without API key for selection)
-  return NextResponse.json({ voices: RAP_VOICES })
+  if (!ELEVENLABS_API_KEY) {
+    // Return curated voices as fallback
+    return NextResponse.json({ voices: RAP_VOICES })
+  }
+
+  try {
+    // Fetch all available voices from ElevenLabs
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+      },
+    })
+
+    if (!response.ok) {
+      return NextResponse.json({ voices: RAP_VOICES })
+    }
+
+    const data = await response.json()
+    const voices = data.voices?.map((v: any) => ({
+      id: v.voice_id,
+      name: v.name,
+      style: v.labels?.accent || v.labels?.description || v.labels?.gender || 'Voice',
+      preview_url: v.preview_url,
+      category: v.category || 'premade',
+    })) || RAP_VOICES
+
+    return NextResponse.json({ voices })
+  } catch (error) {
+    console.error('Failed to fetch voices:', error)
+    return NextResponse.json({ voices: RAP_VOICES })
+  }
 }
