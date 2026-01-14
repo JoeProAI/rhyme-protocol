@@ -17,15 +17,35 @@ export interface Generation {
  * Save image to Firebase Storage and return permanent URL
  */
 export async function saveImageToStorage(userId: string, imageData: string, generationId: string): Promise<string> {
-  // If already a permanent URL (not base64), return as-is
-  if (!imageData.startsWith('data:')) {
-    return imageData
+  // If base64 data URL, upload directly
+  if (imageData.startsWith('data:')) {
+    const storageRef = ref(storage, `generations/${userId}/${generationId}.png`)
+    await uploadString(storageRef, imageData, 'data_url')
+    const downloadUrl = await getDownloadURL(storageRef)
+    return downloadUrl
   }
 
-  const storageRef = ref(storage, `generations/${userId}/${generationId}.png`)
-  await uploadString(storageRef, imageData, 'data_url')
-  const downloadUrl = await getDownloadURL(storageRef)
-  return downloadUrl
+  // If external URL, fetch and re-upload to Firebase Storage
+  if (imageData.startsWith('http')) {
+    try {
+      const response = await fetch(imageData)
+      const blob = await response.blob()
+      const arrayBuffer = await blob.arrayBuffer()
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      const mimeType = blob.type || 'image/png'
+      const dataUrl = `data:${mimeType};base64,${base64}`
+      
+      const storageRef = ref(storage, `generations/${userId}/${generationId}.png`)
+      await uploadString(storageRef, dataUrl, 'data_url')
+      const downloadUrl = await getDownloadURL(storageRef)
+      return downloadUrl
+    } catch (err) {
+      console.error('Failed to fetch and save external image:', err)
+      return imageData // Return original URL as fallback
+    }
+  }
+
+  return imageData
 }
 
 /**
