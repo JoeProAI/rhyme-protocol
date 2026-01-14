@@ -103,14 +103,22 @@ export default function AudioStudio() {
       
       // Save to gallery
       if (user && data.audioUrl) {
-        await saveGeneration(user.uid, {
-          type: 'audio_voice',
-          imageUrl: '',
-          audioUrl: data.audioUrl,
-          prompt: text.substring(0, 100) + (data.totalChunks > 1 ? ` (Part ${data.chunkIndex + 1}/${data.totalChunks})` : ''),
-          metadata: { voiceId: selectedVoice, chunk: data.chunkIndex + 1, totalChunks: data.totalChunks }
-        })
-        setSaved(true)
+        try {
+          console.log('Saving audio for user:', user.uid)
+          await saveGeneration(user.uid, {
+            type: 'audio_voice',
+            imageUrl: '',
+            audioUrl: data.audioUrl,
+            prompt: text.substring(0, 100) + (data.totalChunks > 1 ? ` (Part ${data.chunkIndex + 1}/${data.totalChunks})` : ''),
+            metadata: { voiceId: selectedVoice, chunk: data.chunkIndex + 1, totalChunks: data.totalChunks }
+          })
+          console.log('Audio saved to gallery')
+          setSaved(true)
+        } catch (saveErr: any) {
+          console.error('Failed to save audio:', saveErr?.message || saveErr)
+        }
+      } else {
+        console.log('Not saving audio - user:', !!user, 'audioUrl:', !!data.audioUrl)
       }
     } catch (err: any) {
       setError(err.message)
