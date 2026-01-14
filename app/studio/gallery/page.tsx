@@ -159,10 +159,36 @@ export default function Gallery() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {generations.map((gen) => {
               const isAudio = gen.type.startsWith('audio_')
+              const isLyrics = gen.type === 'lyrics'
               
               return (
                 <div key={gen.id} className="border border-border-subtle bg-surface group">
-                  {isAudio ? (
+                  {isLyrics ? (
+                    <div className="aspect-square relative overflow-hidden bg-bg flex flex-col p-4">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" className="mb-2 flex-shrink-0">
+                        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                      </svg>
+                      <pre className="text-xs text-text font-mono whitespace-pre-wrap overflow-hidden flex-1 leading-relaxed">
+                        {gen.textContent?.substring(0, 300) || gen.prompt}
+                        {(gen.textContent?.length || 0) > 300 && '...'}
+                      </pre>
+                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => navigator.clipboard.writeText(gen.textContent || '')}
+                          className="px-3 py-1 bg-accent text-bg text-xs font-medium hover:bg-accent/90"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => handleDelete(gen.id)}
+                          disabled={deleting === gen.id}
+                          className="px-3 py-1 bg-red-500 text-white text-xs font-medium hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {deleting === gen.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : isAudio ? (
                     <div className="aspect-square relative overflow-hidden bg-bg flex flex-col items-center justify-center p-4">
                       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" className="mb-4">
                         <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Z"/>

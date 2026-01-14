@@ -4,6 +4,8 @@ import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { AuthGuard } from '@/components/AuthGuard';
 import { CostNotice } from '@/components/CostNotice';
+import { useAuth } from '@/components/AuthProvider';
+import { saveGeneration } from '@/lib/firestore-generations';
 
 type LyricStyle = 'trap' | 'conscious' | 'oldschool' | 'storytelling' | 'aggressive' | 'melodic';
 type AIModel = 'gpt' | 'grok' | 'both';
@@ -31,6 +33,7 @@ interface LyricResult {
 }
 
 export default function LyricLab() {
+  const { user } = useAuth();
   const [theme, setTheme] = useState('');
   const [style, setStyle] = useState<LyricStyle>('trap');
   const [model, setModel] = useState<AIModel>('both');
@@ -43,7 +46,28 @@ export default function LyricLab() {
   const [selectedLyrics, setSelectedLyrics] = useState('');
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [generatingVoice, setGeneratingVoice] = useState<number | null>(null);
+  const [savedIndexes, setSavedIndexes] = useState<number[]>([]);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleSave = async (lyrics: string, source: string, index: number) => {
+    if (!user) return;
+    setSavingIndex(index);
+    try {
+      await saveGeneration(user.uid, {
+        type: 'lyrics',
+        imageUrl: '',
+        textContent: lyrics,
+        prompt: theme,
+        metadata: { style, source, bars, action }
+      });
+      setSavedIndexes(prev => [...prev, index]);
+    } catch (err) {
+      console.error('Save error:', err);
+    } finally {
+      setSavingIndex(null);
+    }
+  };
 
   const handleListen = async (lyrics: string, index: number) => {
     if (playingIndex === index && audioRef.current) {
@@ -296,6 +320,11 @@ export default function LyricLab() {
             )}
 
             {/* AI Results */}
+            {results.length > 0 && (
+              <div className="p-3 border border-warning/30 bg-warning/5 text-sm text-warning mb-4">
+                Click "Save" to keep lyrics in My Creations. Unsaved lyrics will be lost when you leave.
+              </div>
+            )}
             {isGenerating ? (
               <div className="border border-border-subtle bg-surface p-12 text-center">
                 <div className="w-12 h-12 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -323,6 +352,17 @@ export default function LyricLab() {
                           className="text-xs px-2 py-1 border border-border-subtle text-text-secondary hover:border-accent hover:text-accent transition-colors"
                         >
                           Copy
+                        </button>
+                        <button
+                          onClick={() => handleSave(result.lyrics, result.source, idx)}
+                          disabled={savingIndex === idx || savedIndexes.includes(idx)}
+                          className={`text-xs px-2 py-1 border transition-colors ${
+                            savedIndexes.includes(idx)
+                              ? 'border-green-500 text-green-500 bg-green-500/10'
+                              : 'border-border-subtle text-text-secondary hover:border-accent hover:text-accent'
+                          } disabled:opacity-50`}
+                        >
+                          {savingIndex === idx ? '...' : savedIndexes.includes(idx) ? 'Saved' : 'Save'}
                         </button>
                         <button
                           onClick={() => useInEditor(result.lyrics)}

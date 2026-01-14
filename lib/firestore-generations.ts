@@ -4,9 +4,10 @@ import { db, storage } from './firebase'
 
 export interface Generation {
   id: string
-  type: 'cover_art' | 'video' | 'audio_voice' | 'audio_sfx' | 'audio_music'
+  type: 'cover_art' | 'video' | 'audio_voice' | 'audio_sfx' | 'audio_music' | 'lyrics'
   imageUrl: string
   audioUrl?: string
+  textContent?: string
   prompt: string
   metadata: Record<string, any>
   createdAt: Date
@@ -76,6 +77,7 @@ export async function saveGeneration(
     type: generation.type,
     imageUrl: permanentImageUrl || '',
     audioUrl: permanentAudioUrl || '',
+    textContent: generation.textContent || '',
     prompt: generation.prompt,
     metadata: generation.metadata,
     createdAt: serverTimestamp(),
@@ -86,6 +88,7 @@ export async function saveGeneration(
     type: generation.type,
     imageUrl: permanentImageUrl || '',
     audioUrl: permanentAudioUrl,
+    textContent: generation.textContent,
     prompt: generation.prompt,
     metadata: generation.metadata,
     createdAt: new Date(),
@@ -108,6 +111,7 @@ export async function getGenerations(userId: string): Promise<Generation[]> {
       type: data.type,
       imageUrl: data.imageUrl || '',
       audioUrl: data.audioUrl || undefined,
+      textContent: data.textContent || undefined,
       prompt: data.prompt,
       metadata: data.metadata || {},
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),

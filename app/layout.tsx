@@ -130,6 +130,7 @@ const navItems = [
   { href: "/studio/video", label: "Video" },
   { href: "/studio/audio", label: "Audio" },
   { href: "/studio/gallery", label: "My Creations" },
+  { href: "/how-to", label: "How To" },
 ];
 
 export default function RootLayout({

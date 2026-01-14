@@ -49,6 +49,10 @@ export default function AudioStudio() {
   const [instrumental, setInstrumental] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioChunks, setAudioChunks] = useState<string[]>([])
+  const [currentChunk, setCurrentChunk] = useState(0)
+  const [totalChunks, setTotalChunks] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -65,22 +69,35 @@ export default function AudioStudio() {
       .catch(console.error)
   }, [])
 
-  const generateVoice = async () => {
+  const generateVoice = async (chunkIdx = 0) => {
     if (!text.trim()) return
     setGenerating(true)
     setError(null)
-    setAudioUrl(null)
-    setSaved(false)
+    if (chunkIdx === 0) {
+      setAudioUrl(null)
+      setAudioChunks([])
+      setSaved(false)
+    }
 
     try {
       const res = await fetch('/api/studio/voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voiceId: selectedVoice }),
+        body: JSON.stringify({ 
+          text, 
+          voiceId: selectedVoice,
+          chunkIndex: chunkIdx,
+          preprocessForRap: true
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+      
       setAudioUrl(data.audioUrl)
+      setAudioChunks(prev => [...prev, data.audioUrl])
+      setCurrentChunk(data.chunkIndex)
+      setTotalChunks(data.totalChunks)
+      setHasMore(data.hasMore)
       
       // Save to gallery
       if (user && data.audioUrl) {
@@ -88,8 +105,8 @@ export default function AudioStudio() {
           type: 'audio_voice',
           imageUrl: '',
           audioUrl: data.audioUrl,
-          prompt: text.substring(0, 100),
-          metadata: { voiceId: selectedVoice }
+          prompt: text.substring(0, 100) + (data.totalChunks > 1 ? ` (Part ${data.chunkIndex + 1}/${data.totalChunks})` : ''),
+          metadata: { voiceId: selectedVoice, chunk: data.chunkIndex + 1, totalChunks: data.totalChunks }
         })
         setSaved(true)
       }
@@ -97,6 +114,12 @@ export default function AudioStudio() {
       setError(err.message)
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const continueVoice = () => {
+    if (hasMore && !generating) {
+      generateVoice(currentChunk + 1)
     }
   }
 
@@ -265,20 +288,48 @@ export default function AudioStudio() {
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Paste your lyrics or enter text to hear it spoken..."
+                  placeholder="Paste your lyrics or enter text to hear it spoken... Longer lyrics will be split into parts to save credits."
                   className="w-full h-40 px-4 py-3 bg-surface border border-border-subtle text-text placeholder:text-muted resize-none focus:outline-none focus:border-accent"
-                  maxLength={1000}
+                  maxLength={5000}
                 />
-                <p className="text-xs text-muted mt-1">{text.length}/1000 characters</p>
+                <p className="text-xs text-muted mt-1">
+                  {text.length}/5000 chars • {text.length > 1000 ? `Will split into ~${Math.ceil(text.length / 1000)} parts` : 'Single part'}
+                </p>
               </div>
 
               <button
-                onClick={generateVoice}
+                onClick={() => generateVoice(0)}
                 disabled={generating || !text.trim()}
                 className="w-full py-3 bg-accent text-bg font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {generating ? 'Generating...' : 'Generate Speech'}
               </button>
+              
+              {/* Show chunk progress and continue button */}
+              {totalChunks > 1 && mode === 'voice' && (
+                <div className="mt-3 p-3 border border-border-subtle bg-surface/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted">
+                      Part {currentChunk + 1} of {totalChunks}
+                    </span>
+                    {hasMore && (
+                      <button
+                        onClick={continueVoice}
+                        disabled={generating}
+                        className="px-4 py-1 text-sm border border-accent text-accent hover:bg-accent/10 disabled:opacity-50 transition-colors"
+                      >
+                        {generating ? 'Generating...' : 'Continue to Next Part'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="w-full bg-bg h-1">
+                    <div 
+                      className="h-1 bg-accent transition-all"
+                      style={{ width: `${((currentChunk + 1) / totalChunks) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
