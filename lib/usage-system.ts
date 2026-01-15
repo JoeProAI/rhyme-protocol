@@ -62,6 +62,18 @@ export const COUPON_TIERS = {
     video_generations: 30,
     expires_days: 90,
   },
+  UTOPIA: {
+    lyric_generations: 10000,
+    cover_art: 5000,
+    video_generations: 1000,
+    expires_days: 365,
+  },
+  PRODUCER: {
+    lyric_generations: 200,
+    cover_art: 100,
+    video_generations: 20,
+    expires_days: 90,
+  },
 }
 
 export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists'

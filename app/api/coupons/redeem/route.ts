@@ -16,6 +16,14 @@ function getStripe(): Stripe | null {
 // Valid coupon codes (you can also create these in Stripe dashboard)
 // Format: CODE -> { tier, maxRedemptions, currentRedemptions }
 const VALID_COUPONS: Record<string, { tier: keyof typeof COUPON_TIERS; maxRedemptions: number }> = {
+  // Complex codes - harder to guess
+  'RP-BETA-X7K9M2': { tier: 'BETA_TESTER', maxRedemptions: 100 },
+  'RP-EARLY-Q4W8N3': { tier: 'EARLY_SUPPORTER', maxRedemptions: 50 },
+  'RP-VIP-Z6Y1P5': { tier: 'VIP', maxRedemptions: 10 },
+  'RP-PROD-J3H7L9': { tier: 'PRODUCER', maxRedemptions: 25 },
+  // Special codes
+  'UTOPIA26!': { tier: 'UTOPIA', maxRedemptions: 50 },
+  // Legacy codes (keep for backwards compatibility)
   'RHYME-BETA-2026': { tier: 'BETA_TESTER', maxRedemptions: 100 },
   'RHYME-EARLY': { tier: 'EARLY_SUPPORTER', maxRedemptions: 50 },
   'RHYME-VIP': { tier: 'VIP', maxRedemptions: 10 },
