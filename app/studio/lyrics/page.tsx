@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { AuthGuard } from '@/components/AuthGuard';
 import { CostNotice } from '@/components/CostNotice';
 import { useAuth } from '@/components/AuthProvider';
 import { saveGeneration } from '@/lib/firestore-generations';
+
+interface Voice {
+  id: string;
+  name: string;
+  style: string;
+  preview_url?: string;
+}
 
 type LyricStyle = 'trap' | 'conscious' | 'oldschool' | 'storytelling' | 'aggressive' | 'melodic';
 type AIModel = 'gpt' | 'grok' | 'both';
@@ -48,7 +55,57 @@ export default function LyricLab() {
   const [generatingVoice, setGeneratingVoice] = useState<number | null>(null);
   const [savedIndexes, setSavedIndexes] = useState<number[]>([]);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const [voiceSearch, setVoiceSearch] = useState('');
+  const [loadingVoices, setLoadingVoices] = useState(false);
+  const [playingPreview, setPlayingPreview] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+
+  const fetchVoices = async (search = '') => {
+    setLoadingVoices(true);
+    try {
+      const url = search ? `/api/studio/voice?search=${encodeURIComponent(search)}` : '/api/studio/voice';
+      const res = await fetch(url);
+      const data = await res.json();
+      setVoices(data.voices || []);
+      if (!selectedVoice && data.voices?.length > 0) {
+        setSelectedVoice(data.voices[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch voices:', err);
+    } finally {
+      setLoadingVoices(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVoices();
+  }, []);
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      if (voiceSearch) {
+        fetchVoices(voiceSearch);
+      }
+    }, 500);
+    return () => clearTimeout(debounce);
+  }, [voiceSearch]);
+
+  const playVoicePreview = (voiceId: string, previewUrl: string) => {
+    if (playingPreview === voiceId) {
+      previewRef.current?.pause();
+      setPlayingPreview(null);
+      return;
+    }
+    if (previewRef.current) {
+      previewRef.current.src = previewUrl;
+      previewRef.current.play();
+      setPlayingPreview(voiceId);
+      previewRef.current.onended = () => setPlayingPreview(null);
+    }
+  };
 
   const handleSave = async (lyrics: string, source: string, index: number) => {
     if (!user) return;
@@ -76,12 +133,17 @@ export default function LyricLab() {
       return;
     }
 
+    if (!selectedVoice) {
+      setError('Please select a voice first');
+      return;
+    }
+
     setGeneratingVoice(index);
     try {
       const response = await fetch('/api/studio/voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: lyrics.slice(0, 1000) }),
+        body: JSON.stringify({ text: lyrics.slice(0, 1000), voiceId: selectedVoice, preprocessForRap: true }),
       });
 
       if (!response.ok) throw new Error('Voice generation failed');
@@ -281,6 +343,53 @@ export default function LyricLab() {
                 <span>16</span>
                 <span>32</span>
               </div>
+            </div>
+
+            {/* Voice Selection */}
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">
+                Voice for Listen ({voices.length} available)
+              </label>
+              <input
+                type="text"
+                value={voiceSearch}
+                onChange={(e) => setVoiceSearch(e.target.value)}
+                placeholder="Search voices... (rapper, deep, british...)"
+                className="w-full px-3 py-2 mb-2 bg-surface border border-border-subtle text-text text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              {loadingVoices && <div className="text-xs text-muted mb-2">Loading...</div>}
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {voices.slice(0, 20).map(voice => (
+                  <div
+                    key={voice.id}
+                    onClick={() => setSelectedVoice(voice.id)}
+                    className={`px-3 py-2 border cursor-pointer text-sm flex items-center gap-2 ${
+                      selectedVoice === voice.id
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border-subtle hover:border-border'
+                    }`}
+                  >
+                    {voice.preview_url && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playVoicePreview(voice.id, voice.preview_url!);
+                        }}
+                        className="w-6 h-6 flex items-center justify-center border border-border-subtle hover:border-accent text-xs"
+                      >
+                        {playingPreview === voice.id ? '⏹' : '▶'}
+                      </button>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{voice.name}</div>
+                      <div className="text-xs text-muted truncate">{voice.style}</div>
+                    </div>
+                    {selectedVoice === voice.id && <span className="text-accent">✓</span>}
+                  </div>
+                ))}
+              </div>
+              <audio ref={previewRef} className="hidden" />
             </div>
 
             {/* Generate Button */}
