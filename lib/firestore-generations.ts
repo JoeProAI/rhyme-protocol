@@ -100,13 +100,23 @@ export async function saveGeneration(
   console.log('[saveGeneration] Writing to Firestore...')
   const generationsRef = collection(db, 'users', userId, 'generations')
   
+  // Sanitize metadata to remove undefined values (Firestore doesn't accept undefined)
+  const sanitizedMetadata: Record<string, any> = {}
+  if (generation.metadata) {
+    for (const [key, value] of Object.entries(generation.metadata)) {
+      if (value !== undefined) {
+        sanitizedMetadata[key] = value
+      }
+    }
+  }
+  
   const docRef = await addDoc(generationsRef, {
     type: generation.type,
     imageUrl: permanentImageUrl || '',
     audioUrl: permanentAudioUrl || '',
     textContent: generation.textContent || '',
-    prompt: generation.prompt,
-    metadata: generation.metadata,
+    prompt: generation.prompt || '',
+    metadata: sanitizedMetadata,
     createdAt: serverTimestamp(),
   })
   console.log('[saveGeneration] Saved to Firestore with id:', docRef.id)
