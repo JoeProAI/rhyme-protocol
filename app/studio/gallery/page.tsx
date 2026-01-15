@@ -6,15 +6,24 @@ import { getGenerations, deleteGeneration as deleteGen, Generation } from '@/lib
 import Link from 'next/link'
 
 export default function Gallery() {
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, loading: authLoading, signOut, signInAnonymously } = useAuth()
   const [generations, setGenerations] = useState<Generation[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
 
+  // Auto sign-in guests so they can see their creations
+  useEffect(() => {
+    if (!user && !authLoading) {
+      signInAnonymously().catch(console.error)
+    }
+  }, [user, authLoading, signInAnonymously])
+
   useEffect(() => {
     if (user) {
+      console.log('Fetching generations for user:', user.uid, 'isAnonymous:', user.isAnonymous)
       getGenerations(user.uid)
         .then(gens => {
+          console.log('Loaded generations:', gens.length)
           setGenerations(gens)
           setLoading(false)
         })

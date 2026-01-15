@@ -69,15 +69,19 @@ export async function saveGeneration(
   userId: string,
   generation: Omit<Generation, 'id' | 'createdAt'>
 ): Promise<Generation> {
+  console.log('[saveGeneration] Starting save for user:', userId, 'type:', generation.type)
+  
   const generationId = `gen_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
   
   // Save image to storage if present
   let permanentImageUrl = generation.imageUrl
   if (generation.imageUrl) {
     try {
+      console.log('[saveGeneration] Saving image to storage...')
       permanentImageUrl = await saveImageToStorage(userId, generation.imageUrl, generationId)
+      console.log('[saveGeneration] Image saved:', permanentImageUrl?.substring(0, 50))
     } catch (error) {
-      console.error('Failed to save image to storage:', error)
+      console.error('[saveGeneration] Failed to save image to storage:', error)
     }
   }
 
@@ -85,12 +89,15 @@ export async function saveGeneration(
   let permanentAudioUrl = generation.audioUrl
   if (generation.audioUrl) {
     try {
+      console.log('[saveGeneration] Saving audio to storage...')
       permanentAudioUrl = await saveAudioToStorage(userId, generation.audioUrl, generationId)
+      console.log('[saveGeneration] Audio saved:', permanentAudioUrl?.substring(0, 50))
     } catch (error) {
-      console.error('Failed to save audio to storage:', error)
+      console.error('[saveGeneration] Failed to save audio to storage:', error)
     }
   }
 
+  console.log('[saveGeneration] Writing to Firestore...')
   const generationsRef = collection(db, 'users', userId, 'generations')
   
   const docRef = await addDoc(generationsRef, {
@@ -102,6 +109,7 @@ export async function saveGeneration(
     metadata: generation.metadata,
     createdAt: serverTimestamp(),
   })
+  console.log('[saveGeneration] Saved to Firestore with id:', docRef.id)
 
   return {
     id: docRef.id,
