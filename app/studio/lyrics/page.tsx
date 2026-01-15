@@ -40,7 +40,7 @@ interface LyricResult {
 }
 
 export default function LyricLab() {
-  const { user } = useAuth();
+  const { user, signInAnonymously } = useAuth();
   const [theme, setTheme] = useState('');
   const [style, setStyle] = useState<LyricStyle>('trap');
   const [model, setModel] = useState<AIModel>('both');
@@ -59,6 +59,13 @@ export default function LyricLab() {
   const [selectedVoice, setSelectedVoice] = useState('');
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
+
+  // Auto sign-in guests anonymously so they can save creations
+  useEffect(() => {
+    if (!user) {
+      signInAnonymously().catch(console.error);
+    }
+  }, [user, signInAnonymously]);
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewRef = useRef<HTMLAudioElement | null>(null);

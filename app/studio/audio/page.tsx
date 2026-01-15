@@ -38,7 +38,7 @@ const MUSIC_GENRES = [
 ]
 
 export default function AudioStudio() {
-  const { user } = useAuth()
+  const { user, signInAnonymously } = useAuth()
   const [mode, setMode] = useState<AudioMode>('voice')
   const [voices, setVoices] = useState<Voice[]>([])
   const [selectedVoice, setSelectedVoice] = useState('')
@@ -62,6 +62,13 @@ export default function AudioStudio() {
   const [playingPreview, setPlayingPreview] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const previewRef = useRef<HTMLAudioElement | null>(null)
+
+  // Auto sign-in guests anonymously so they can save creations
+  useEffect(() => {
+    if (!user) {
+      signInAnonymously().catch(console.error)
+    }
+  }, [user, signInAnonymously])
 
   const fetchVoices = async (search = '') => {
     setLoadingVoices(true)

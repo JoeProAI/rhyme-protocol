@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthGuard } from '@/components/AuthGuard';
@@ -28,7 +28,7 @@ const MOODS: { value: CoverMood; label: string }[] = [
 ];
 
 export default function CoverArtStudio() {
-  const { user } = useAuth();
+  const { user, signInAnonymously } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<CoverStyle>('album-cover');
   const [mood, setMood] = useState<CoverMood>('vibrant');
@@ -39,6 +39,13 @@ export default function CoverArtStudio() {
   const [editCount, setEditCount] = useState(0);
   const [result, setResult] = useState<{ imageUrl: string; revisedPrompt?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto sign-in guests anonymously so they can save creations
+  useEffect(() => {
+    if (!user) {
+      signInAnonymously().catch(console.error);
+    }
+  }, [user, signInAnonymously]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
