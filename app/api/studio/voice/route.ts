@@ -135,11 +135,11 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           text: chunkToGenerate,
-          model_id: 'eleven_turbo_v2_5',
+          model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.4,
-            similarity_boost: 0.85,
-            style: 0.6,
+            stability: 0.75,
+            similarity_boost: 0.80,
+            style: 0.35,
             use_speaker_boost: true,
           },
         }),

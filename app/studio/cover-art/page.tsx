@@ -81,7 +81,7 @@ export default function CoverArtStudio() {
             type: 'cover_art',
             imageUrl: data.imageUrl,
             prompt,
-            metadata: { style, mood, aspectRatio, revisedPrompt: data.revisedPrompt },
+            metadata: { style, mood, aspectRatio, revisedPrompt: data.revisedPrompt || '' },
           });
           console.log('Saved to gallery:', saved.id);
         } catch (saveErr: any) {

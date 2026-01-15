@@ -66,6 +66,36 @@ export default function LyricLab() {
       signInAnonymously().catch(console.error);
     }
   }, [user, signInAnonymously]);
+
+  // Load saved lyrics from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('rhyme_last_lyrics');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.results?.length > 0) {
+          setResults(parsed.results);
+          setTheme(parsed.theme || '');
+          setStyle(parsed.style || 'trap');
+        }
+      } catch (e) {
+        console.error('Failed to load saved lyrics:', e);
+      }
+    }
+  }, []);
+
+  // Save lyrics to localStorage when generated
+  useEffect(() => {
+    if (results.length > 0) {
+      localStorage.setItem('rhyme_last_lyrics', JSON.stringify({
+        results,
+        theme,
+        style,
+        savedAt: Date.now(),
+      }));
+    }
+  }, [results, theme, style]);
+
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewRef = useRef<HTMLAudioElement | null>(null);
