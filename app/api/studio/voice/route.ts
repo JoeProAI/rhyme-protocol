@@ -175,34 +175,69 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   if (!ELEVENLABS_API_KEY) {
-    // Return curated voices as fallback
     return NextResponse.json({ voices: RAP_VOICES })
   }
 
-  try {
-    // Fetch all available voices from ElevenLabs
-    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-      },
-    })
+  const { searchParams } = new URL(req.url)
+  const search = searchParams.get('search') || ''
+  const page = parseInt(searchParams.get('page') || '0')
 
-    if (!response.ok) {
-      return NextResponse.json({ voices: RAP_VOICES })
+  try {
+    // Fetch user's voices
+    const userVoicesRes = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+    })
+    
+    let userVoices: any[] = []
+    if (userVoicesRes.ok) {
+      const userData = await userVoicesRes.json()
+      userVoices = userData.voices?.map((v: any) => ({
+        id: v.voice_id,
+        name: v.name,
+        style: v.labels?.accent || v.labels?.description || v.labels?.use_case || v.labels?.gender || 'Voice',
+        preview_url: v.preview_url,
+        category: 'my_voices',
+      })) || []
     }
 
-    const data = await response.json()
-    const voices = data.voices?.map((v: any) => ({
-      id: v.voice_id,
-      name: v.name,
-      style: v.labels?.accent || v.labels?.description || v.labels?.gender || 'Voice',
-      preview_url: v.preview_url,
-      category: v.category || 'premade',
-    })) || RAP_VOICES
+    // Fetch shared voice library (thousands of voices)
+    const sharedUrl = new URL('https://api.elevenlabs.io/v1/shared-voices')
+    sharedUrl.searchParams.set('page_size', '100')
+    if (search) sharedUrl.searchParams.set('search', search)
+    if (page > 0) sharedUrl.searchParams.set('page', page.toString())
+    // Filter for good quality voices
+    sharedUrl.searchParams.set('sort', 'trending')
+    
+    const sharedRes = await fetch(sharedUrl.toString(), {
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+    })
 
-    return NextResponse.json({ voices })
+    let sharedVoices: any[] = []
+    let hasMore = false
+    if (sharedRes.ok) {
+      const sharedData = await sharedRes.json()
+      hasMore = sharedData.has_more || false
+      sharedVoices = sharedData.voices?.map((v: any) => ({
+        id: v.voice_id,
+        name: v.name,
+        style: v.accent || v.description || v.gender || v.use_case || 'Shared Voice',
+        preview_url: v.preview_url,
+        category: 'shared',
+      })) || []
+    }
+
+    // Combine: user voices first, then shared
+    const allVoices = [...userVoices, ...sharedVoices]
+
+    return NextResponse.json({ 
+      voices: allVoices,
+      hasMore,
+      page,
+      totalUserVoices: userVoices.length,
+      totalSharedVoices: sharedVoices.length
+    })
   } catch (error) {
     console.error('Failed to fetch voices:', error)
     return NextResponse.json({ voices: RAP_VOICES })

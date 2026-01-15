@@ -57,32 +57,55 @@ export default function AudioStudio() {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [voiceSearch, setVoiceSearch] = useState('')
+  const [loadingVoices, setLoadingVoices] = useState(false)
+  const [playingPreview, setPlayingPreview] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const previewRef = useRef<HTMLAudioElement | null>(null)
 
-  // Default to Adam (Deep & Smooth) - good for rap
-  const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'
-  
+  const fetchVoices = async (search = '') => {
+    setLoadingVoices(true)
+    try {
+      const url = search ? `/api/studio/voice?search=${encodeURIComponent(search)}` : '/api/studio/voice'
+      const res = await fetch(url)
+      const data = await res.json()
+      setVoices(data.voices || [])
+      if (!selectedVoice && data.voices?.length > 0) {
+        setSelectedVoice(data.voices[0].id)
+      }
+    } catch (err) {
+      console.error('Failed to fetch voices:', err)
+    } finally {
+      setLoadingVoices(false)
+    }
+  }
+
   useEffect(() => {
-    fetch('/api/studio/voice')
-      .then(res => res.json())
-      .then(data => {
-        const allVoices = data.voices || []
-        // Sort to put curated rap voices first
-        const rapVoiceIds = ['pNInz6obpgDQGcFmaJgB', '21m00Tcm4TlvDq8ikWAM', 'TxGEqnHWrfWFTfGW9XjX', 'VR6AewLTigWG4xSOukaG']
-        const sorted = [...allVoices].sort((a, b) => {
-          const aIsRap = rapVoiceIds.includes(a.id)
-          const bIsRap = rapVoiceIds.includes(b.id)
-          if (aIsRap && !bIsRap) return -1
-          if (!aIsRap && bIsRap) return 1
-          return 0
-        })
-        setVoices(sorted)
-        // Default to Adam or first available
-        const hasDefault = sorted.some(v => v.id === DEFAULT_VOICE_ID)
-        setSelectedVoice(hasDefault ? DEFAULT_VOICE_ID : sorted[0]?.id || '')
-      })
-      .catch(console.error)
+    fetchVoices()
   }, [])
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      if (voiceSearch) {
+        fetchVoices(voiceSearch)
+      }
+    }, 500)
+    return () => clearTimeout(debounce)
+  }, [voiceSearch])
+
+  const playPreview = (voiceId: string, previewUrl: string) => {
+    if (playingPreview === voiceId) {
+      previewRef.current?.pause()
+      setPlayingPreview(null)
+      return
+    }
+    if (previewRef.current) {
+      previewRef.current.src = previewUrl
+      previewRef.current.play()
+      setPlayingPreview(voiceId)
+      previewRef.current.onended = () => setPlayingPreview(null)
+    }
+  }
 
   const generateVoice = async (chunkIdx = 0) => {
     if (!text.trim()) return
@@ -279,29 +302,62 @@ export default function AudioStudio() {
             ))}
           </div>
 
+          {/* Hidden audio element for previews */}
+          <audio ref={previewRef} className="hidden" />
+
           {/* Voice Mode */}
           {mode === 'voice' && (
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-text mb-2">
-                  Select Voice
+                  Search Voices ({voices.length} available)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <input
+                  type="text"
+                  value={voiceSearch}
+                  onChange={(e) => setVoiceSearch(e.target.value)}
+                  placeholder="Search thousands of voices... (e.g. 'deep male', 'female british', 'rapper')"
+                  className="w-full px-4 py-2 mb-4 bg-surface border border-border-subtle text-text placeholder:text-muted focus:outline-none focus:border-accent"
+                />
+                {loadingVoices && (
+                  <div className="text-sm text-muted mb-2">Loading voices...</div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
                   {voices.map(voice => (
-                    <button
+                    <div
                       key={voice.id}
                       onClick={() => setSelectedVoice(voice.id)}
-                      className={`p-3 border text-left transition-colors ${
+                      className={`p-3 border cursor-pointer transition-colors flex items-center gap-2 ${
                         selectedVoice === voice.id
                           ? 'border-accent bg-accent/10'
                           : 'border-border-subtle hover:border-border'
                       }`}
                     >
-                      <div className="font-medium text-text text-sm">{voice.name}</div>
-                      <div className="text-xs text-muted">{voice.style}</div>
-                    </button>
+                      {voice.preview_url && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            playPreview(voice.id, voice.preview_url!)
+                          }}
+                          className="w-8 h-8 flex items-center justify-center border border-border-subtle hover:border-accent hover:text-accent transition-colors flex-shrink-0"
+                        >
+                          {playingPreview === voice.id ? '⏹' : '▶'}
+                        </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-text text-sm truncate">{voice.name}</div>
+                        <div className="text-xs text-muted truncate">{voice.style}</div>
+                      </div>
+                      {selectedVoice === voice.id && (
+                        <span className="text-accent text-xs">✓</span>
+                      )}
+                    </div>
                   ))}
                 </div>
+                {voices.length === 0 && !loadingVoices && (
+                  <div className="text-sm text-muted text-center py-4">No voices found. Try a different search.</div>
+                )}
               </div>
 
               <div>
