@@ -32,8 +32,13 @@ export async function POST(req: NextRequest) {
     if (mood) enhancedPrompt = `${enhancedPrompt}, ${mood} mood`
     if (instrumental) enhancedPrompt = `${enhancedPrompt} [instrumental only, no vocals]`
 
+    // Clamp duration between 10s and 300s (5 min)
+    const clampedDuration = Math.min(Math.max(duration_seconds, 10), 300)
+    
+    console.log('Music API request:', { prompt: enhancedPrompt, duration: clampedDuration })
+    
     const response = await fetch(
-      'https://api.elevenlabs.io/v1/music/generate',
+      'https://api.elevenlabs.io/v1/music/compose',
       {
         method: 'POST',
         headers: {
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           prompt: enhancedPrompt,
-          duration_seconds: Math.min(Math.max(duration_seconds, 10), 300),
+          duration: clampedDuration,
         }),
       }
     )
