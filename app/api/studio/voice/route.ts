@@ -18,37 +18,52 @@ const RAP_VOICES = [
 const MAX_CHUNK_CHARS = 1000
 
 /**
- * Preprocess lyrics for better rap/hip-hop pronunciation
- * Optimized for Eleven v3 with audio tags for natural flow
+ * Preprocess lyrics for smoother rap flow
+ * - Joins lines into flowing phrases
+ * - Only pauses at verse/section breaks
+ * - Adds subtle rhythm markers
  */
 function preprocessLyrics(text: string): string {
-  let processed = text
+  const lines = text.split('\n')
+  const processedLines: string[] = []
   
-  // Use shorter pauses for better rap flow (single dash instead of ellipsis)
-  processed = processed.replace(/\n\n/g, '\n- \n')
-  processed = processed.replace(/\n/g, ' - \n')
-  
-  // Common rap pronunciation fixes
-  const pronunciations: [string, string][] = [
-    ["finna", "finna"],
-    ["tryna", "tryna"], 
-    ["gonna", "gonna"],
-    ["gotta", "gotta"],
-    ["wanna", "wanna"],
-    ["aint", "ain't"],
-    ["dont", "don't"],
-    ["cant", "can't"],
-    ["wont", "won't"],
-    ["yall", "y'all"],
-    ["wassup", "what's up"],
-    ["whatchu", "what you"],
-    ["lemme", "let me"],
-    ["gimme", "give me"],
-  ]
-  
-  for (const [slang, pronunciation] of pronunciations) {
-    processed = processed.split(new RegExp(`\\b${slang}\\b`, 'gi')).join(pronunciation)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    const nextLine = lines[i + 1]?.trim() || ''
+    
+    if (!line) {
+      // Empty line = verse break, add a breath pause
+      processedLines.push('')
+      continue
+    }
+    
+    // Check if this is a section header like [Verse] or [Chorus]
+    if (line.match(/^\[.*\]$/)) {
+      processedLines.push(line)
+      continue
+    }
+    
+    // Check if next line is empty (end of verse) or a section header
+    const isEndOfVerse = !nextLine || nextLine.match(/^\[.*\]$/)
+    
+    if (isEndOfVerse) {
+      // End of verse - add the line with a period for natural stop
+      processedLines.push(line.replace(/[,.]?$/, '.'))
+    } else {
+      // Continue flowing - use comma for slight pause, keeps momentum
+      processedLines.push(line.replace(/[,.]?$/, ','))
+    }
   }
+  
+  // Join with single spaces for continuous flow
+  let processed = processedLines.join(' ').replace(/\s+/g, ' ').trim()
+  
+  // Remove section headers from spoken output
+  processed = processed.replace(/\[.*?\]/g, '')
+  
+  // Clean up double punctuation
+  processed = processed.replace(/[,.]\s*[,.]/g, '.')
+  processed = processed.replace(/\s+/g, ' ').trim()
   
   return processed
 }
@@ -161,9 +176,9 @@ export async function POST(req: NextRequest) {
           text: chunkToGenerate,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            stability: 0.50,
-            similarity_boost: 0.75,
-            style: 0.0,
+            stability: 0.35,
+            similarity_boost: 0.80,
+            style: 0.15,
             use_speaker_boost: true,
           },
         }),
