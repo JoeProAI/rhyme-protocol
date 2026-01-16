@@ -247,7 +247,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch shared voice library (thousands of voices)
     const sharedUrl = new URL('https://api.elevenlabs.io/v1/shared-voices')
-    sharedUrl.searchParams.set('page_size', '100')
+    sharedUrl.searchParams.set('page_size', '500')
     if (search) sharedUrl.searchParams.set('search', search)
     if (page > 0) sharedUrl.searchParams.set('page', page.toString())
     // Filter for good quality voices

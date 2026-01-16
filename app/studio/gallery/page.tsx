@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getGenerations, deleteGeneration as deleteGen, Generation } from '@/lib/firestore-generations'
 import Link from 'next/link'
@@ -10,6 +10,23 @@ export default function Gallery() {
   const [generations, setGenerations] = useState<Generation[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [playing, setPlaying] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const handlePlay = (audioUrl: string, id: string) => {
+    if (playing === id) {
+      audioRef.current?.pause()
+      setPlaying(null)
+      return
+    }
+    
+    if (audioRef.current) {
+      audioRef.current.src = audioUrl
+      audioRef.current.play()
+      setPlaying(id)
+      audioRef.current.onended = () => setPlaying(null)
+    }
+  }
 
   // Auto sign-in guests so they can see their creations
   useEffect(() => {
@@ -69,6 +86,7 @@ export default function Gallery() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <audio ref={audioRef} className="hidden" />
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <Link 
@@ -203,14 +221,38 @@ export default function Gallery() {
                         <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2Z"/>
                       </svg>
                       {gen.audioUrl && (
-                        <audio src={gen.audioUrl} controls className="w-full max-w-[200px]" />
+                        <button
+                          onClick={() => handlePlay(gen.audioUrl!, gen.id)}
+                          className={`px-6 py-3 font-medium text-sm transition-all flex items-center gap-2 ${
+                            playing === gen.id 
+                              ? 'bg-red-500 text-white hover:bg-red-600' 
+                              : 'bg-accent text-bg hover:bg-accent/90'
+                          }`}
+                        >
+                          {playing === gen.id ? (
+                            <>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16"/>
+                                <rect x="14" y="4" width="4" height="16"/>
+                              </svg>
+                              Stop
+                            </>
+                          ) : (
+                            <>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 19,12 5,21"/>
+                              </svg>
+                              Listen
+                            </>
+                          )}
+                        </button>
                       )}
                       <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {gen.audioUrl && (
                           <a
                             href={gen.audioUrl}
                             download={`${gen.id}.mp3`}
-                            className="px-3 py-1 bg-accent text-bg text-xs font-medium hover:bg-accent/90"
+                            className="px-3 py-1 bg-surface border border-border-subtle text-text text-xs font-medium hover:border-accent"
                           >
                             Download
                           </a>
