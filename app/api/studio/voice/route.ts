@@ -19,18 +19,16 @@ const MAX_CHUNK_CHARS = 1000
 
 /**
  * Preprocess lyrics for better rap/hip-hop pronunciation
- * Adds pauses, emphasizes rhymes, handles slang
+ * Optimized for Eleven v3 with audio tags for natural flow
  */
 function preprocessLyrics(text: string): string {
   let processed = text
   
-  // Add slight pauses at line breaks for flow
-  processed = processed.replace(/\n/g, '... \n')
+  // Use shorter pauses for better rap flow (single dash instead of ellipsis)
+  processed = processed.replace(/\n\n/g, '\n- \n')
+  processed = processed.replace(/\n/g, ' - \n')
   
-  // Emphasize words in ALL CAPS by adding slight pause before
-  processed = processed.replace(/\b([A-Z]{2,})\b/g, '... $1')
-  
-  // Common rap pronunciation fixes (using simple string replace to avoid regex issues)
+  // Common rap pronunciation fixes
   const pronunciations: [string, string][] = [
     ["finna", "finna"],
     ["tryna", "tryna"], 
@@ -52,11 +50,37 @@ function preprocessLyrics(text: string): string {
     processed = processed.split(new RegExp(`\\b${slang}\\b`, 'gi')).join(pronunciation)
   }
   
-  // Add emphasis markers for rhyming words at end of lines
-  // (words before line breaks get slight emphasis)
-  processed = processed.replace(/(\w+)(\.\.\.?\s*\n)/g, '$1$2')
-  
   return processed
+}
+
+/**
+ * Run audio through ElevenLabs Voice Isolator for cleaner output
+ */
+async function cleanAudioWithIsolator(audioBuffer: ArrayBuffer): Promise<ArrayBuffer> {
+  if (!ELEVENLABS_API_KEY) return audioBuffer
+  
+  try {
+    const formData = new FormData()
+    const blob = new Blob([audioBuffer], { type: 'audio/mpeg' })
+    formData.append('audio', blob, 'voice.mp3')
+    
+    const response = await fetch('https://api.elevenlabs.io/v1/audio-isolation', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+      },
+      body: formData,
+    })
+    
+    if (response.ok) {
+      return await response.arrayBuffer()
+    }
+    console.log('Voice isolator skipped:', response.status)
+    return audioBuffer
+  } catch (error) {
+    console.error('Voice isolator error:', error)
+    return audioBuffer
+  }
 }
 
 /**
@@ -135,12 +159,13 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           text: chunkToGenerate,
-          model_id: 'eleven_multilingual_v2',
+          model_id: 'eleven_v3',
           voice_settings: {
-            stability: 0.75,
-            similarity_boost: 0.80,
-            style: 0.35,
+            stability: 0.65,
+            similarity_boost: 0.85,
+            style: 0.45,
             use_speaker_boost: true,
+            speed: 1.05,
           },
         }),
       }
@@ -155,7 +180,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const audioBuffer = await response.arrayBuffer()
+    let audioBuffer = await response.arrayBuffer()
+    
+    // Clean up audio with Voice Isolator for smoother sound
+    audioBuffer = await cleanAudioWithIsolator(audioBuffer)
+    
     const base64Audio = Buffer.from(audioBuffer).toString('base64')
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`
 
