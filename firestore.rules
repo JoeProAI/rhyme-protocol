@@ -5,5 +5,19 @@ service cloud.firestore {
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Public gallery: anyone can read, anyone can publish (rate-limited at app
+    // layer via Redis usage system). Deletes are gated by a sessionHash check
+    // performed in the API layer with admin SDK; client-direct deletes are
+    // forbidden.
+    match /public_gallery/{itemId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['type', 'prompt', 'sessionHash', 'createdAt'])
+                       && request.resource.data.prompt is string
+                       && request.resource.data.prompt.size() < 4000
+                       && request.resource.data.sessionHash is string
+                       && request.resource.data.sessionHash.size() < 64;
+      allow update, delete: if false;
+    }
   }
 }

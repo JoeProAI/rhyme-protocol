@@ -129,6 +129,7 @@ const navItems = [
   { href: "/studio/cover-art", label: "Cover Art" },
   { href: "/studio/video", label: "Video" },
   { href: "/studio/audio", label: "Audio" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/studio/gallery", label: "My Creations" },
   { href: "/how-to", label: "How To" },
 ];
