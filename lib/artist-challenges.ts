@@ -39,6 +39,10 @@ export interface ArtistChallenge {
   writer_note?: string
   // Production seed for the beat generator. Specific to the artist's sonic palette.
   beat_prompt?: string
+  // YouTube video ID to embed as the featured cut. Should be an official upload.
+  featured_video?: { id: string; title: string }
+  // Receipt of how the style profile was built. Builds trust.
+  research_credit?: string
 }
 
 export const ARTIST_CHALLENGES: ArtistChallenge[] = [
@@ -128,6 +132,12 @@ Be honest, not flattering. Cal would respect honesty over a participation trophy
       'Write like you are talking to one person at a kitchen table. No big shiny words. Specifics over symbols. Multis happen inside the bar, not at the end. Cal would tell you to cut anything that sounds like rapping for the sake of sounding like rapping.',
     beat_prompt:
       'Moody, sample-driven boom-bap hip-hop instrumental at 88 BPM. Warm vinyl-textured drums slightly behind the pocket, dusty soul or jazz sample loop, sub-bass that breathes, sparse keys, no synth lead. Mid-tempo, introspective, Midwest underground feel. Leaves space for a conversational rapper sitting in the cut. No vocals, no DJ tags.',
+    featured_video: {
+      id: 'mZ4Mv8qnpOM',
+      title: 'MONEY BUY DRUGS (Official Music Video)',
+    },
+    research_credit:
+      'Style profile built by quad-crew research synthesis (Pilot/Harper/Benjamin/Lucas, grok-4-fast, May 2026). 13 documented style traits. 17 prompt seeds. 6-axis judge rubric. Production palette derived from public catalog analysis.',
   },
 ]
 

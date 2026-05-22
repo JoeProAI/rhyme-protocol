@@ -5,6 +5,7 @@ import { getChallenge, getDailyPromptForChallenge, listChallenges } from '@/lib/
 import ChallengeWriter from '@/components/ChallengeWriter'
 import ChallengeChat from '@/components/ChallengeChat'
 import ChallengeBeat from '@/components/ChallengeBeat'
+import ChallengeActivity from '@/components/ChallengeActivity'
 
 export async function generateStaticParams() {
   return listChallenges().map((c) => ({ slug: c.slug }))
@@ -20,6 +21,11 @@ export async function generateMetadata({
   return {
     title: `${c.artist_name} Challenge | Rhyme Protocol`,
     description: `Write bars in the pocket of ${c.artist_name}. AI judges with real notes. Tribute mode, links route back to the artist.`,
+    openGraph: {
+      title: `${c.artist_name} Challenge | Rhyme Protocol`,
+      description: `Cook a beat. Write a verse. Get judged. Tribute to ${c.artist_name}.`,
+      type: 'website',
+    },
   }
 }
 
@@ -29,145 +35,248 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
     notFound()
   }
   const challenge = found!
-
   const todayPrompt = getDailyPromptForChallenge(challenge)
+  const firstName = challenge.artist_name.split(' ')[0]
+  const lastName = challenge.artist_name.split(' ').slice(1).join(' ')
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] py-12 px-4 w-full overflow-x-hidden">
-      <div className="max-w-3xl mx-auto w-full">
-        <div className="mb-3">
-          <Link
-            href="/challenge"
-            className="text-xs font-mono tracking-widest text-text-secondary hover:text-accent transition-colors"
-          >
-            ← ALL CHALLENGES
-          </Link>
-        </div>
-
-        <div className="mb-8 px-2">
-          <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
-            <h1 className="text-4xl sm:text-5xl font-display tracking-tight">
-              <span className="text-text">{challenge.artist_name.split(' ')[0].toUpperCase()}</span>
-              <span className="text-accent">
-                _{(challenge.artist_name.split(' ').slice(1).join(' ') || 'CHALLENGE').toUpperCase()}
-              </span>
-            </h1>
+    <div className="min-h-[calc(100vh-4rem)] w-full overflow-x-hidden">
+      {/* HERO: full-bleed cinematic prompt */}
+      <section className="relative border-b border-border-subtle">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.04] via-transparent to-transparent pointer-events-none" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-12">
+          <div className="mb-6 flex items-center justify-between">
+            <Link
+              href="/challenge"
+              className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-accent transition-colors"
+            >
+              ALL CHALLENGES
+            </Link>
             <span className="text-[10px] font-mono tracking-widest text-muted">
-              {challenge.status === 'official' ? '✓ OFFICIAL' : 'TRIBUTE MODE'}
+              {challenge.status === 'official' ? 'OFFICIAL' : 'TRIBUTE MODE'}
             </span>
           </div>
-          <p className="text-base text-text-secondary leading-relaxed">{challenge.intro}</p>
-        </div>
 
-        <div className="border border-accent/30 bg-accent/5 p-5 mb-8">
-          <div className="text-[10px] font-mono tracking-widest text-accent mb-2">
-            TODAY&apos;S PROMPT
+          <div className="mb-8">
+            <h1 className="text-5xl sm:text-7xl font-display tracking-tight leading-[0.95] mb-4">
+              <span className="text-text">{firstName.toUpperCase()}</span>
+              <span className="text-accent">_{(lastName || 'CHALLENGE').toUpperCase()}</span>
+            </h1>
+            <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-2xl">
+              {challenge.intro}
+            </p>
           </div>
-          <p className="text-lg sm:text-xl font-display tracking-tight text-text leading-snug">
-            {todayPrompt}
-          </p>
-          <p className="text-xs text-text-secondary mt-2">{challenge.pocket}</p>
-        </div>
 
-        <ChallengeWriter slug={challenge.slug} prompt={todayPrompt} writerNote={challenge.writer_note} />
-
-        {challenge.beat_prompt && (
-          <div className="mt-12">
-            <div className="mb-3 flex items-baseline justify-between flex-wrap gap-2 px-1">
-              <h2 className="text-xs font-mono tracking-widest text-accent">
-                COOK_A_BEAT
-              </h2>
-              <span className="text-[10px] font-mono tracking-widest text-muted">
-                STYLE_PALETTE · 15-60S
+          {/* Today's prompt as the main moment */}
+          <div className="border border-accent/40 bg-accent/[0.03] backdrop-blur-sm">
+            <div className="flex items-center justify-between border-b border-accent/20 px-5 py-2">
+              <span className="text-[10px] font-mono tracking-widest text-accent">
+                TODAY'S PROMPT
               </span>
+              <ChallengeActivity slug={challenge.slug} />
             </div>
-            <div className="border border-border-subtle bg-surface p-5">
+            <div className="p-5 sm:p-6">
+              <p className="text-xl sm:text-3xl font-display tracking-tight text-text leading-[1.15] mb-3">
+                {todayPrompt}
+              </p>
+              <p className="text-xs text-text-secondary">{challenge.pocket}</p>
+            </div>
+          </div>
+
+          {/* Credibility receipt */}
+          {challenge.research_credit && (
+            <p className="mt-4 text-[10px] font-mono tracking-widest text-muted leading-relaxed">
+              {challenge.research_credit}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-16">
+        {/* STEP 1: COOK A BEAT */}
+        {challenge.beat_prompt && (
+          <section>
+            <SectionHeader
+              step="01"
+              title="COOK_A_BEAT"
+              sub={`Style-palette instrumental in ${firstName}'s production lane.`}
+              meta="15-60S · FREE"
+            />
+            <div className="border border-border-subtle bg-surface p-5 sm:p-6">
               <ChallengeBeat slug={challenge.slug} artistName={challenge.artist_name} />
             </div>
-          </div>
+          </section>
         )}
 
-        <div className="mt-12">
-          <div className="mb-3 flex items-baseline justify-between flex-wrap gap-2 px-1">
-            <h2 className="text-xs font-mono tracking-widest text-accent">
-              SPAR_WITH_THE_STYLE
-            </h2>
-            <span className="text-[10px] font-mono tracking-widest text-muted">
-              FREE · UNLIMITED
-            </span>
-          </div>
+        {/* STEP 2: WRITE BARS */}
+        <section>
+          <SectionHeader
+            step={challenge.beat_prompt ? '02' : '01'}
+            title="WRITE_THE_BARS"
+            sub="Sit with the prompt. No wrong answers. Be honest before you're clever."
+            meta="JUDGED ON 6 AXES"
+          />
+          <ChallengeWriter
+            slug={challenge.slug}
+            prompt={todayPrompt}
+            writerNote={challenge.writer_note}
+          />
+        </section>
+
+        {/* STEP 3: SPAR */}
+        <section>
+          <SectionHeader
+            step={challenge.beat_prompt ? '03' : '02'}
+            title="SPAR_WITH_THE_STYLE"
+            sub={`AI sparring partner trained on ${challenge.artist_name}'s documented public style. Not the artist himself. Won't flatter you.`}
+            meta="FREE · UNLIMITED"
+          />
           <ChallengeChat slug={challenge.slug} artistName={challenge.artist_name} />
-          <p className="mt-2 px-1 text-[10px] font-mono tracking-widest text-muted leading-relaxed">
-            AI sparring partner trained on {challenge.artist_name}&apos;s documented public style. Not the artist himself. Asks questions, gives notes, won&apos;t flatter you.
-          </p>
-        </div>
+        </section>
 
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* THE ARTIST: featured video + style cards + links */}
+        <section>
+          <SectionHeader
+            step="00"
+            title={`STREAM_${firstName.toUpperCase()}`}
+            sub="This whole thing is a tribute. The point is to send you to the source."
+            meta="OFFICIAL"
+          />
+
+          {challenge.featured_video && (
+            <div className="mb-6">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${challenge.featured_video.id}?rel=0&modestbranding=1`}
+                  title={challenge.featured_video.title}
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border border-border-subtle"
+                  loading="lazy"
+                />
+              </div>
+              <p className="mt-2 text-[10px] font-mono tracking-widest text-muted">
+                {challenge.featured_video.title.toUpperCase()}
+              </p>
+            </div>
+          )}
+
           <div className="border border-border-subtle bg-surface p-5">
-            <h3 className="text-xs font-mono tracking-widest text-accent mb-3">
-              STYLE_TRAITS
-            </h3>
-            <ul className="space-y-2">
-              {challenge.style_traits.map((t) => (
-                <li key={t} className="text-sm text-text-secondary leading-relaxed">
-                  · {t}
-                </li>
+            <div className="text-[10px] font-mono tracking-widest text-accent mb-3">
+              EVERYWHERE TO FIND HIM
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {challenge.official_links.map((l) => (
+                <a
+                  key={l.url}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 border border-accent text-accent text-[10px] font-mono tracking-widest hover:bg-accent hover:text-bg transition-colors"
+                >
+                  {l.label.toUpperCase()}
+                </a>
               ))}
-            </ul>
+            </div>
           </div>
+        </section>
 
-          <div className="border border-border-subtle bg-surface p-5">
-            <h3 className="text-xs font-mono tracking-widest text-accent mb-3">
-              COMMON_THEMES
-            </h3>
-            <ul className="space-y-2">
-              {challenge.themes.map((t) => (
-                <li key={t} className="text-sm text-text-secondary leading-relaxed">
-                  · {t}
-                </li>
-              ))}
-            </ul>
+        {/* STYLE BREAKDOWN: the receipts */}
+        <section>
+          <SectionHeader
+            step="DEEP"
+            title="STYLE_BREAKDOWN"
+            sub="What the judge is actually scoring against. No vibes, no guesses."
+            meta="13 TRAITS · 10 THEMES"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-border-subtle bg-surface p-5">
+              <h3 className="text-[10px] font-mono tracking-widest text-accent mb-3">
+                STYLE_TRAITS
+              </h3>
+              <ul className="space-y-2">
+                {challenge.style_traits.map((t) => (
+                  <li
+                    key={t}
+                    className="text-xs sm:text-sm text-text-secondary leading-relaxed flex gap-2"
+                  >
+                    <span className="text-accent flex-shrink-0">/</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border border-border-subtle bg-surface p-5">
+              <h3 className="text-[10px] font-mono tracking-widest text-accent mb-3">
+                COMMON_THEMES
+              </h3>
+              <ul className="space-y-2">
+                {challenge.themes.map((t) => (
+                  <li
+                    key={t}
+                    className="text-xs sm:text-sm text-text-secondary leading-relaxed flex gap-2"
+                  >
+                    <span className="text-accent flex-shrink-0">/</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="mt-12 border border-border-subtle bg-surface p-5">
-          <h3 className="text-xs font-mono tracking-widest text-accent mb-3">
-            GO STREAM {challenge.artist_name.toUpperCase()}
-          </h3>
-          <p className="text-sm text-text-secondary mb-4">
-            This challenge is a tribute. The whole point is to send people to the artist&apos;s real work.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {challenge.official_links.map((l) => (
-              <a
-                key={l.url}
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 border border-accent text-accent text-xs font-mono tracking-widest hover:bg-accent/10 transition-colors"
-              >
-                {l.label.toUpperCase()} →
-              </a>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-12 text-center text-xs font-mono text-muted tracking-widest">
-          <p className="mb-2">
+        {/* TRIBUTE FOOTER */}
+        <footer className="pt-8 border-t border-border-subtle text-center">
+          <p className="text-[10px] font-mono tracking-widest text-muted mb-2">
             {challenge.status === 'tribute'
-              ? `If you're ${challenge.artist_name} and want this taken down or made official, reach out:`
-              : `Official challenge with ${challenge.artist_name}.`}
+              ? `IF YOU'RE ${challenge.artist_name.toUpperCase()} AND WANT THIS OFFICIAL OR TAKEN DOWN`
+              : `OFFICIAL CHALLENGE WITH ${challenge.artist_name.toUpperCase()}`}
           </p>
           {challenge.status === 'tribute' && (
             <a
-              href={`mailto:joe@joepro.ai?subject=${encodeURIComponent(`Re: ${challenge.artist_name} challenge on Rhyme Protocol`)}`}
-              className="text-accent hover:underline"
+              href={`mailto:joe@joepro.ai?subject=${encodeURIComponent(
+                `Re: ${challenge.artist_name} challenge on Rhyme Protocol`,
+              )}`}
+              className="text-xs font-mono tracking-widest text-accent hover:underline"
             >
-              joe@joepro.ai
+              JOE@JOEPRO.AI
             </a>
           )}
-        </div>
+        </footer>
       </div>
+    </div>
+  )
+}
+
+function SectionHeader({
+  step,
+  title,
+  sub,
+  meta,
+}: {
+  step: string
+  title: string
+  sub: string
+  meta: string
+}) {
+  return (
+    <div className="mb-4">
+      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
+        <div className="flex items-baseline gap-3">
+          <span className="text-[10px] font-mono tracking-widest text-muted">
+            {step}
+          </span>
+          <h2 className="text-base sm:text-lg font-mono tracking-widest text-accent">
+            {title}
+          </h2>
+        </div>
+        <span className="text-[10px] font-mono tracking-widest text-muted">
+          {meta}
+        </span>
+      </div>
+      <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-2xl">
+        {sub}
+      </p>
     </div>
   )
 }
