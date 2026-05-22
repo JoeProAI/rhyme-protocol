@@ -18,6 +18,8 @@ export interface CoverArtRequest {
   style: 'album-cover' | 'single-cover' | 'mixtape' | 'ep';
   mood: 'dark' | 'vibrant' | 'minimal' | 'luxury' | 'street' | 'abstract';
   aspectRatio: '1:1' | '16:9' | '9:16';
+  // Free tier: 'medium' (~$0.04). Premium: 'high' (~$0.17). Default 'medium'.
+  quality?: 'low' | 'medium' | 'high';
 }
 
 const STYLE_PROMPTS: Record<string, string> = {
@@ -45,7 +47,7 @@ const SIZE_MAP: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body: CoverArtRequest = await request.json();
-    const { prompt, style, mood, aspectRatio } = body;
+    const { prompt, style, mood, aspectRatio, quality = 'medium' } = body;
 
     if (!prompt) {
       return NextResponse.json(
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       prompt: fullPrompt,
       n: 1,
       size: size as '1024x1024' | '1536x1024' | '1024x1536',
-      quality: 'high',
+      quality,
     });
 
     if (!response.data || response.data.length === 0) {

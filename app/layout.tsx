@@ -130,6 +130,7 @@ const navItems = [
   { href: "/studio/video", label: "Video" },
   { href: "/studio/audio", label: "Audio" },
   { href: "/gallery", label: "Gallery" },
+  { href: "/free", label: "Free Pack" },
   { href: "/studio/gallery", label: "My Creations" },
   { href: "/how-to", label: "How To" },
 ];
@@ -237,7 +238,7 @@ export default function RootLayout({
                     </span>
                   </Link>
                   <p className="text-text-secondary text-sm max-w-md">
-                    AI-powered music video generation for rap and hip-hop artists.
+                    AI-powered tools for rap and hip-hop artists. Free for the community.
                   </p>
                 </div>
 

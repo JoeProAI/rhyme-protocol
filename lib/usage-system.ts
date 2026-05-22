@@ -11,25 +11,27 @@ import { redisGet, redisSet, redisIncr, redisIncrBy, isRedisConfigured } from '.
 const UNLIMITED = 999999
 
 // Per-session daily limits for anonymous users.
+// Generous-by-default for the rap community.
 export const FREE_LIMITS = {
   // Effectively unlimited (per-call cost is < $0.01)
   lyric_generations: UNLIMITED,
   chat_messages: UNLIMITED,
   ai_assists: UNLIMITED,
   agent_calls: UNLIMITED,
-  // Generous (mid-cost)
-  cover_art: 10,
-  image_edits: 10,
+  // Generous (mid-cost ~ $0.04 each at medium quality)
+  cover_art: 15,
+  image_edits: 15,
   // Capped + earnable (high cost)
-  video_generations: 2,
-  sandbox_hours: 1,
+  video_generations: 3,
+  sandbox_hours: 2,
 }
 
-// Bonus added per successful share-to-X (or other social referral)
+// Bonus added per successful share-to-X (or other social referral).
+// Max 3 shares/day per type means real cap = base + 3 * SHARE_BONUS.
 export const SHARE_BONUS = {
-  video_generations: 3,
-  cover_art: 5,
-  sandbox_hours: 1,
+  video_generations: 5,    // 3 base + 15 = up to 18/day
+  cover_art: 10,           // 15 base + 30 = up to 45/day
+  sandbox_hours: 2,        // 2 base + 6 = up to 8/day
 }
 
 // Global daily $ ceiling across the whole site (USD). When exceeded, expensive
