@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import DailyPromptCard from '@/components/DailyPromptCard';
 
 export const metadata: Metadata = {
   title: 'Rhyme Protocol | AI Tools for Rap Artists',
@@ -55,6 +56,9 @@ export default function Home() {
             AI-powered tools for rap artists. From lyrics to visuals.
           </p>
         </div>
+
+        {/* Daily Prompt - free, refreshes every 24h */}
+        <DailyPromptCard />
 
         {/* Studio Tools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16 px-1">

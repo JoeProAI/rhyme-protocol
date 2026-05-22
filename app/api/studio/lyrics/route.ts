@@ -27,18 +27,26 @@ export interface LyricRequest {
   bars?: number;
   existingLyrics?: string;
   action: 'generate' | 'continue' | 'rewrite' | 'rhyme-suggestions';
+  // 'free' (default) uses gpt-4o-mini ~ $0.0015/run.
+  // 'premium' uses gpt-4.1 ~ $0.02/run. Reserved for paying users.
+  quality?: 'free' | 'premium';
 }
 
+// Model selection: gpt-4o-mini is ~13x cheaper than gpt-4.1 with comparable
+// quality on creative writing. Use it for the free tier default.
+// Override per-request with `quality: 'premium'` to use gpt-4.1.
 const AI_PERSONALITIES = {
   gpt: {
     name: 'The Technician',
     focus: 'complex rhyme schemes, multisyllabic rhymes, intricate wordplay',
-    model: 'gpt-4.1-2025-04-14',
+    model: 'gpt-4o-mini',
+    premiumModel: 'gpt-4.1-2025-04-14',
   },
   grok: {
-    name: 'The Provocateur', 
+    name: 'The Provocateur',
     focus: 'bold statements, cultural references, wit and edge',
     model: 'grok-3-fast',
+    premiumModel: 'grok-3-fast',
   },
 };
 
@@ -100,10 +108,13 @@ RULES FOR EDITING:
 
 Your changes should feel like polish, not replacement. The artist should recognize their work, just better.`;
 
-async function generateWithGPT(prompt: string, systemPrompt: string): Promise<string> {
+async function generateWithGPT(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<string> {
   const openai = getOpenAI();
+  const model = quality === 'premium'
+    ? AI_PERSONALITIES.gpt.premiumModel
+    : AI_PERSONALITIES.gpt.model;
   const response = await openai.chat.completions.create({
-    model: 'gpt-4.1-2025-04-14',
+    model,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt },
@@ -114,11 +125,11 @@ async function generateWithGPT(prompt: string, systemPrompt: string): Promise<st
   return response.choices[0]?.message?.content || '';
 }
 
-async function generateWithGrok(prompt: string, systemPrompt: string): Promise<string> {
+async function generateWithGrok(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<string> {
   try {
     const grok = getGrokClient();
     const response = await grok.chat.completions.create({
-      model: 'grok-3-fast',
+      model: AI_PERSONALITIES.grok.model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
@@ -129,14 +140,14 @@ async function generateWithGrok(prompt: string, systemPrompt: string): Promise<s
     return response.choices[0]?.message?.content || '';
   } catch (error) {
     console.error('[Lyrics] Grok error, falling back:', error);
-    return generateWithGPT(prompt, systemPrompt);
+    return generateWithGPT(prompt, systemPrompt, quality);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: LyricRequest = await request.json();
-    const { theme, style, model, bars = 16, existingLyrics, action } = body;
+    const { theme, style, model, bars = 16, existingLyrics, action, quality = 'free' } = body;
 
     if (!theme) {
       return NextResponse.json(
@@ -270,7 +281,7 @@ Give me 5 GENIUS-LEVEL rhyme options:
     const results: { source: string; name: string; lyrics: string }[] = [];
 
     if (model === 'gpt' || model === 'both') {
-      const gptLyrics = await generateWithGPT(userPrompt, systemPrompt);
+      const gptLyrics = await generateWithGPT(userPrompt, systemPrompt, quality);
       results.push({
         source: 'gpt',
         name: AI_PERSONALITIES.gpt.name,
@@ -279,7 +290,7 @@ Give me 5 GENIUS-LEVEL rhyme options:
     }
 
     if (model === 'grok' || model === 'both') {
-      const grokLyrics = await generateWithGrok(userPrompt, systemPrompt);
+      const grokLyrics = await generateWithGrok(userPrompt, systemPrompt, quality);
       results.push({
         source: 'grok',
         name: AI_PERSONALITIES.grok.name,
@@ -295,6 +306,7 @@ Give me 5 GENIUS-LEVEL rhyme options:
         style,
         bars,
         action,
+        quality,
       },
     });
   } catch (error: any) {
