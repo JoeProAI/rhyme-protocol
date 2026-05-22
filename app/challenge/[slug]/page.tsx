@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getChallenge, getDailyPromptForChallenge, listChallenges } from '@/lib/artist-challenges'
 import ChallengeWriter from '@/components/ChallengeWriter'
+import ChallengeChat from '@/components/ChallengeChat'
 
 export async function generateStaticParams() {
   return listChallenges().map((c) => ({ slug: c.slug }))
@@ -68,6 +69,21 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
         </div>
 
         <ChallengeWriter slug={challenge.slug} prompt={todayPrompt} writerNote={challenge.writer_note} />
+
+        <div className="mt-12">
+          <div className="mb-3 flex items-baseline justify-between flex-wrap gap-2 px-1">
+            <h2 className="text-xs font-mono tracking-widest text-accent">
+              SPAR_WITH_THE_STYLE
+            </h2>
+            <span className="text-[10px] font-mono tracking-widest text-muted">
+              FREE · UNLIMITED
+            </span>
+          </div>
+          <ChallengeChat slug={challenge.slug} artistName={challenge.artist_name} />
+          <p className="mt-2 px-1 text-[10px] font-mono tracking-widest text-muted leading-relaxed">
+            AI sparring partner trained on {challenge.artist_name}&apos;s documented public style. Not the artist himself. Asks questions, gives notes, won&apos;t flatter you.
+          </p>
+        </div>
 
         <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="border border-border-subtle bg-surface p-5">
