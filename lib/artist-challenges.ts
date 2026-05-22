@@ -37,6 +37,8 @@ export interface ArtistChallenge {
   official_links: { label: string; url: string }[]
   // Optional inspiration line for the user. Sets the writer's mindset.
   writer_note?: string
+  // Production seed for the beat generator. Specific to the artist's sonic palette.
+  beat_prompt?: string
 }
 
 export const ARTIST_CHALLENGES: ArtistChallenge[] = [
@@ -45,7 +47,7 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     artist_name: 'Cal Scruby',
     status: 'tribute',
     intro:
-      'Loveland, Ohio. Howard University. Independent the whole way. Cal works the Cincinnati metro voice into a relaxed, mid-tempo pocket with internal rhymes that cluster inside the line instead of announcing themselves at the end. Punchlines land as quiet observations, not climactic reveals. Self-aware about race, industry, and faith without ever leaning on any of it as a costume. He runs his own lane with no major label calling shots, which is exactly why this is a tribute and not a takeover.',
+      'Loveland, Ohio. Ohio State alum who recorded his first single in the OSU library. Independent the whole way, no label, writes and records and mixes his own stuff. Cal works the Cincinnati metro voice into a relaxed, mid-tempo pocket with internal rhymes that cluster inside the line instead of announcing themselves at the end. Punchlines land as quiet observations, not climactic reveals. Self-aware about race, industry, and faith without ever leaning on any of it as a costume. He runs his own lane with no major label calling shots, which is exactly why this is a tribute and not a takeover.',
     style_traits: [
       'Conversational pocket. Bars feel like one person talking to one person, not the room.',
       'Cadence sits slightly behind the snare. Controlled drag, never rushed, never showy.',
@@ -116,14 +118,16 @@ Map the six internal axes onto the four output keys as follows: pocket = (POCKET
 
 Be honest, not flattering. Cal would respect honesty over a participation trophy.`,
     official_links: [
-      { label: 'Spotify', url: 'https://open.spotify.com/artist/4kkbHKsGz9MXuNomidcCvm' },
-      { label: 'Apple Music', url: 'https://music.apple.com/us/artist/cal-scruby/977770181' },
+      { label: 'Site', url: 'https://calscruby.com/' },
+      { label: 'Spotify', url: 'https://open.spotify.com/artist/2wcrc3fjebDRLVdtRUa3pu' },
+      { label: 'Apple Music', url: 'https://music.apple.com/us/artist/cal-scruby/670791732' },
       { label: 'YouTube', url: 'https://www.youtube.com/@calscruby' },
       { label: 'Instagram', url: 'https://www.instagram.com/calscruby/' },
-      { label: 'TikTok', url: 'https://www.tiktok.com/@calscruby' },
     ],
     writer_note:
       'Write like you are talking to one person at a kitchen table. No big shiny words. Specifics over symbols. Multis happen inside the bar, not at the end. Cal would tell you to cut anything that sounds like rapping for the sake of sounding like rapping.',
+    beat_prompt:
+      'Moody, sample-driven boom-bap hip-hop instrumental at 88 BPM. Warm vinyl-textured drums slightly behind the pocket, dusty soul or jazz sample loop, sub-bass that breathes, sparse keys, no synth lead. Mid-tempo, introspective, Midwest underground feel. Leaves space for a conversational rapper sitting in the cut. No vocals, no DJ tags.',
   },
 ]
 

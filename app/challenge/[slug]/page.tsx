@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { getChallenge, getDailyPromptForChallenge, listChallenges } from '@/lib/artist-challenges'
 import ChallengeWriter from '@/components/ChallengeWriter'
 import ChallengeChat from '@/components/ChallengeChat'
+import ChallengeBeat from '@/components/ChallengeBeat'
 
 export async function generateStaticParams() {
   return listChallenges().map((c) => ({ slug: c.slug }))
@@ -69,6 +70,22 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
         </div>
 
         <ChallengeWriter slug={challenge.slug} prompt={todayPrompt} writerNote={challenge.writer_note} />
+
+        {challenge.beat_prompt && (
+          <div className="mt-12">
+            <div className="mb-3 flex items-baseline justify-between flex-wrap gap-2 px-1">
+              <h2 className="text-xs font-mono tracking-widest text-accent">
+                COOK_A_BEAT
+              </h2>
+              <span className="text-[10px] font-mono tracking-widest text-muted">
+                STYLE_PALETTE · 15-60S
+              </span>
+            </div>
+            <div className="border border-border-subtle bg-surface p-5">
+              <ChallengeBeat slug={challenge.slug} artistName={challenge.artist_name} />
+            </div>
+          </div>
+        )}
 
         <div className="mt-12">
           <div className="mb-3 flex items-baseline justify-between flex-wrap gap-2 px-1">
