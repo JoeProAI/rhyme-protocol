@@ -5,21 +5,39 @@
 
 import { redisGet, redisSet, redisIncr, redisIncrBy, isRedisConfigured } from './redis'
 
-// Free tier limits (per day for anonymous users)
-// ULTIMATE FREE ACCESS MODE: all features unlimited for everyone.
-// Toggle by setting FREE_ACCESS_UNLIMITED=false (defaults to true).
-export const FREE_ACCESS_UNLIMITED = process.env.FREE_ACCESS_UNLIMITED !== 'false'
+// Tiered free access. Cheap stuff is truly unlimited; expensive stuff has a
+// generous daily cap with a viral share-to-earn bonus. Global $ ceiling caps
+// total daily spend across ALL users to protect against runaway costs.
 const UNLIMITED = 999999
+
+// Per-session daily limits for anonymous users.
 export const FREE_LIMITS = {
-  lyric_generations: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
-  cover_art: FREE_ACCESS_UNLIMITED ? UNLIMITED : 3,
-  video_generations: FREE_ACCESS_UNLIMITED ? UNLIMITED : 2,
-  chat_messages: FREE_ACCESS_UNLIMITED ? UNLIMITED : 10,
-  image_edits: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
-  agent_calls: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
-  sandbox_hours: FREE_ACCESS_UNLIMITED ? UNLIMITED : 0,
-  ai_assists: FREE_ACCESS_UNLIMITED ? UNLIMITED : 10,
+  // Effectively unlimited (per-call cost is < $0.01)
+  lyric_generations: UNLIMITED,
+  chat_messages: UNLIMITED,
+  ai_assists: UNLIMITED,
+  agent_calls: UNLIMITED,
+  // Generous (mid-cost)
+  cover_art: 10,
+  image_edits: 10,
+  // Capped + earnable (high cost)
+  video_generations: 2,
+  sandbox_hours: 1,
 }
+
+// Bonus added per successful share-to-X (or other social referral)
+export const SHARE_BONUS = {
+  video_generations: 3,
+  cover_art: 5,
+  sandbox_hours: 1,
+}
+
+// Global daily $ ceiling across the whole site (USD). When exceeded, expensive
+// generations switch to queued mode. Cheap unlimited stuff keeps flowing.
+export const DAILY_BUDGET_USD = Number(process.env.DAILY_BUDGET_USD || '10')
+
+// Which usage types are protected by the global $ ceiling.
+const EXPENSIVE_TYPES: UsageType[] = ['video_generations', 'sandbox_hours', 'cover_art']
 
 // Pricing (cost to you, for tracking)
 export const COSTS = {
@@ -81,6 +99,25 @@ export const COUPON_TIERS = {
 
 export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists'
 
+/**
+ * Redis key for the per-session share bonus counter.
+ * One bonus is awarded per share, capped at MAX_SHARE_BONUSES_PER_DAY.
+ */
+function getShareBonusKey(sessionId: string, type: UsageType): string {
+  const date = new Date().toISOString().slice(0, 10)
+  return `share_bonus:${sessionId}:${date}:${type}`
+}
+
+/**
+ * Redis key for the global daily spend tracker.
+ */
+function getGlobalSpendKey(): string {
+  const date = new Date().toISOString().slice(0, 10)
+  return `global_spend:${date}`
+}
+
+const MAX_SHARE_BONUSES_PER_DAY = 3
+
 interface UsageData {
   lyric_generations: number
   cover_art: number
@@ -131,29 +168,24 @@ function getPaymentKey(sessionId: string): string {
  * Check if user can perform an action
  */
 export async function checkUsage(sessionId: string, type: UsageType): Promise<UsageCheck> {
-  // ULTIMATE FREE ACCESS: bypass all gating when enabled.
-  if (FREE_ACCESS_UNLIMITED) {
-    return {
-      allowed: true,
-      remaining: Infinity,
-      limit: Infinity,
-      used: 0,
-    }
-  }
-
   const dailyKey = getDailyKey(sessionId, type)
   const paymentKey = getPaymentKey(sessionId)
+  const shareBonusKey = getShareBonusKey(sessionId, type)
 
-  const [used, paymentData] = await Promise.all([
-    redisGet<number>(dailyKey) || 0,
+  const [used, paymentData, shareBonus, globalSpend] = await Promise.all([
+    redisGet<number>(dailyKey),
     redisGet<{ has_payment: boolean; stripe_customer_id?: string }>(paymentKey),
+    redisGet<number>(shareBonusKey),
+    redisGet<number>(getGlobalSpendKey()),
   ])
 
   const currentUsed = used || 0
-  const limit = FREE_LIMITS[type]
+  const baseLimit = FREE_LIMITS[type]
+  const bonus = (shareBonus || 0) * (SHARE_BONUS[type as keyof typeof SHARE_BONUS] || 0)
+  const limit = baseLimit + bonus
   const hasPayment = paymentData?.has_payment || false
 
-  // Paying users have unlimited access
+  // Paying users always allowed
   if (hasPayment) {
     return {
       allowed: true,
@@ -163,14 +195,30 @@ export async function checkUsage(sessionId: string, type: UsageType): Promise<Us
     }
   }
 
-  // Check free tier limit
-  if (currentUsed >= limit) {
+  // Global daily $ ceiling for expensive generations.
+  if (EXPENSIVE_TYPES.includes(type) && (globalSpend || 0) >= DAILY_BUDGET_USD) {
     return {
       allowed: false,
       remaining: 0,
       limit,
       used: currentUsed,
-      reason: `Daily limit reached (${limit} free ${type.replace('_', ' ')} per day)`,
+      reason: `Daily community budget reached. Try again in a few hours or share to unlock priority access.`,
+      upgrade_url: '/dashboard',
+    }
+  }
+
+  // Per-session daily limit
+  if (currentUsed >= limit) {
+    const sharable = SHARE_BONUS[type as keyof typeof SHARE_BONUS]
+    const reason = sharable
+      ? `Daily limit reached (${limit}). Share to X to unlock +${sharable} more.`
+      : `Daily limit reached (${limit} per day).`
+    return {
+      allowed: false,
+      remaining: 0,
+      limit,
+      used: currentUsed,
+      reason,
       upgrade_url: '/dashboard',
     }
   }
@@ -184,31 +232,73 @@ export async function checkUsage(sessionId: string, type: UsageType): Promise<Us
 }
 
 /**
+ * Award a share bonus to a session. Called from /api/usage/share-bonus after
+ * verifying a real share (e.g. X intent click + return).
+ * Capped at MAX_SHARE_BONUSES_PER_DAY per session per type.
+ */
+export async function awardShareBonus(sessionId: string, type: UsageType): Promise<{ success: boolean; new_limit?: number; reason?: string }> {
+  if (!(type in SHARE_BONUS)) {
+    return { success: false, reason: 'This action is not eligible for share bonuses.' }
+  }
+  const key = getShareBonusKey(sessionId, type)
+  const current = (await redisGet<number>(key)) || 0
+  if (current >= MAX_SHARE_BONUSES_PER_DAY) {
+    return { success: false, reason: 'Daily share bonus cap reached.' }
+  }
+  const next = current + 1
+  await redisSet(key, next, 172800)
+  const baseLimit = FREE_LIMITS[type]
+  const perShare = SHARE_BONUS[type as keyof typeof SHARE_BONUS] || 0
+  return { success: true, new_limit: baseLimit + next * perShare }
+}
+
+/**
+ * Get remaining global daily budget (for UI display).
+ */
+export async function getGlobalBudgetStatus(): Promise<{ spent: number; ceiling: number; remaining: number; pct_used: number }> {
+  const spent = (await redisGet<number>(getGlobalSpendKey())) || 0
+  const remaining = Math.max(0, DAILY_BUDGET_USD - spent)
+  return {
+    spent,
+    ceiling: DAILY_BUDGET_USD,
+    remaining,
+    pct_used: Math.min(100, (spent / DAILY_BUDGET_USD) * 100),
+  }
+}
+
+/**
  * Track usage after an action is performed
  */
 export async function trackUsage(sessionId: string, type: UsageType, quantity: number = 1): Promise<void> {
   const dailyKey = getDailyKey(sessionId, type)
   const monthlyKey = getMonthlyKey(sessionId)
-  
+  const globalSpendKey = getGlobalSpendKey()
+
   // Increment daily usage
   await redisIncrBy(dailyKey, quantity)
-  
+
   // Set expiry for daily key (48 hours to be safe)
   await redisSet(dailyKey, (await redisGet<number>(dailyKey)) || quantity, 172800)
-  
+
   // Track monthly cost
   const costKey = type.replace('_messages', '_message').replace('_generations', '_segment').replace('_edits', '_edit').replace('_calls', '_call').replace('_hours', '_hour').replace('_assists', '_assist') as keyof typeof COSTS
-  const cost = COSTS[costKey] * quantity
-  
+  const cost = (COSTS[costKey] || 0) * quantity
+
   const monthlyData = await redisGet<{ total_cost: number; breakdown: Record<string, number> }>(monthlyKey) || {
     total_cost: 0,
     breakdown: {},
   }
-  
+
   monthlyData.total_cost += cost
   monthlyData.breakdown[type] = (monthlyData.breakdown[type] || 0) + quantity
-  
+
   await redisSet(monthlyKey, monthlyData)
+
+  // Track GLOBAL daily spend (for daily $ ceiling enforcement)
+  if (cost > 0) {
+    const currentGlobal = (await redisGet<number>(globalSpendKey)) || 0
+    await redisSet(globalSpendKey, currentGlobal + cost, 172800)
+  }
 }
 
 /**
