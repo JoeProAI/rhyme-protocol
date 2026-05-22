@@ -18,6 +18,8 @@ export const FREE_LIMITS = {
   chat_messages: UNLIMITED,
   ai_assists: UNLIMITED,
   agent_calls: UNLIMITED,
+  // Generous artist tools (low-mid cost)
+  audio_isolations: 30,
   // Generous (mid-cost ~ $0.04 each at medium quality)
   cover_art: 15,
   image_edits: 15,
@@ -51,6 +53,7 @@ export const COSTS = {
   agent_call: 0.005,      // ~$0.005 per agent call
   sandbox_hour: 0.05,     // ~$0.05 per sandbox hour
   ai_assist: 0.003,       // ~$0.003 per AI assist
+  audio_isolation: 0.01,  // ~$0.01 per minute isolated (ElevenLabs)
 }
 
 // Pricing for users (if they pay)
@@ -99,7 +102,7 @@ export const COUPON_TIERS = {
   },
 }
 
-export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists'
+export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists' | 'audio_isolations'
 
 /**
  * Redis key for the per-session share bonus counter.

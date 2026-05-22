@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import VoiceIsolator from './VoiceIsolator'
 
 interface JudgeResult {
   scores: {
@@ -30,6 +31,7 @@ export default function ChallengeWriter({
   const [error, setError] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
+  const [showAudio, setShowAudio] = useState(false)
 
   const wordCount = bars.trim() ? bars.trim().split(/\s+/).length : 0
   const lineCount = bars.trim() ? bars.trim().split(/\n+/).filter(Boolean).length : 0
@@ -139,6 +141,26 @@ export default function ChallengeWriter({
           {error}
         </div>
       )}
+
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => setShowAudio((s) => !s)}
+          className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-text transition-colors"
+        >
+          {showAudio ? '− HIDE' : '+ ADD'} VOCAL TAKE (OPTIONAL)
+        </button>
+        {showAudio && (
+          <div className="mt-3 border border-border-subtle bg-surface p-4">
+            <p className="text-xs text-text-secondary leading-relaxed mb-4">
+              Record yourself performing the bars on your phone, drop it in,
+              and we'll strip the room noise / beat bleed. Download the clean
+              acapella to layer over a beat or share with the verdict.
+            </p>
+            <VoiceIsolator compact />
+          </div>
+        )}
+      </div>
 
       {result && (
         <div className="border border-accent/40 bg-accent/5 p-5 mb-6">
