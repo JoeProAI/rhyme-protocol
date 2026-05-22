@@ -6,16 +6,19 @@
 import { redisGet, redisSet, redisIncr, redisIncrBy, isRedisConfigured } from './redis'
 
 // Free tier limits (per day for anonymous users)
-// Budget: ~$100/month = ~$3.33/day across all free users
+// ULTIMATE FREE ACCESS MODE: all features unlimited for everyone.
+// Toggle by setting FREE_ACCESS_UNLIMITED=false (defaults to true).
+export const FREE_ACCESS_UNLIMITED = process.env.FREE_ACCESS_UNLIMITED !== 'false'
+const UNLIMITED = 999999
 export const FREE_LIMITS = {
-  lyric_generations: 5,   // Lyric generations per day (~$0.02 each = $0.10/day)
-  cover_art: 3,           // Cover art per day (~$0.13 each = $0.39/day)
-  video_generations: 2,   // Video gen per day (~$0.71 each = $1.42/day)
-  chat_messages: 10,      // Chat messages per day
-  image_edits: 5,         // Image edits per day
-  agent_calls: 5,         // Agent API calls per day
-  sandbox_hours: 0,       // Sandbox disabled for free
-  ai_assists: 10,         // AI assists per day
+  lyric_generations: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
+  cover_art: FREE_ACCESS_UNLIMITED ? UNLIMITED : 3,
+  video_generations: FREE_ACCESS_UNLIMITED ? UNLIMITED : 2,
+  chat_messages: FREE_ACCESS_UNLIMITED ? UNLIMITED : 10,
+  image_edits: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
+  agent_calls: FREE_ACCESS_UNLIMITED ? UNLIMITED : 5,
+  sandbox_hours: FREE_ACCESS_UNLIMITED ? UNLIMITED : 0,
+  ai_assists: FREE_ACCESS_UNLIMITED ? UNLIMITED : 10,
 }
 
 // Pricing (cost to you, for tracking)
@@ -128,18 +131,28 @@ function getPaymentKey(sessionId: string): string {
  * Check if user can perform an action
  */
 export async function checkUsage(sessionId: string, type: UsageType): Promise<UsageCheck> {
+  // ULTIMATE FREE ACCESS: bypass all gating when enabled.
+  if (FREE_ACCESS_UNLIMITED) {
+    return {
+      allowed: true,
+      remaining: Infinity,
+      limit: Infinity,
+      used: 0,
+    }
+  }
+
   const dailyKey = getDailyKey(sessionId, type)
   const paymentKey = getPaymentKey(sessionId)
-  
+
   const [used, paymentData] = await Promise.all([
     redisGet<number>(dailyKey) || 0,
     redisGet<{ has_payment: boolean; stripe_customer_id?: string }>(paymentKey),
   ])
-  
+
   const currentUsed = used || 0
   const limit = FREE_LIMITS[type]
   const hasPayment = paymentData?.has_payment || false
-  
+
   // Paying users have unlimited access
   if (hasPayment) {
     return {
@@ -149,7 +162,7 @@ export async function checkUsage(sessionId: string, type: UsageType): Promise<Us
       used: currentUsed,
     }
   }
-  
+
   // Check free tier limit
   if (currentUsed >= limit) {
     return {
@@ -161,7 +174,7 @@ export async function checkUsage(sessionId: string, type: UsageType): Promise<Us
       upgrade_url: '/dashboard',
     }
   }
-  
+
   return {
     allowed: true,
     remaining: limit - currentUsed,
