@@ -4,7 +4,7 @@ import { listChallenges } from '@/lib/artist-challenges'
 
 export const metadata: Metadata = {
   title: 'Artist Challenges | Rhyme Protocol',
-  description: 'Write bars in the pocket of artists you respect. AI judges. Tribute mode — every challenge links back to the artist.',
+  description: 'Write bars in the pocket of artists you respect. AI judges. Tribute mode, every challenge links back to the artist.',
 }
 
 export default function ChallengeIndexPage() {

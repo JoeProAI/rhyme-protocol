@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * VoiceIsolator — drag/drop or browse, isolate via /api/audio/isolate,
+ * VoiceIsolator, drag/drop or browse, isolate via /api/audio/isolate,
  * preview before & after, download cleaned MP3.
  *
  * Optional `onIsolated(blob, url)` callback lets a parent (like ChallengeWriter)

@@ -69,7 +69,7 @@ export default function ChallengeWriter({
         body: JSON.stringify({
           type: 'lyrics',
           prompt: `[${slug} challenge] ${prompt}`,
-          textContent: `${bars.trim()}\n\n— Score: ${result.overall}/100 · ${result.verdict}`,
+          textContent: `${bars.trim()}\n\n- Score: ${result.overall}/100 · ${result.verdict}`,
           style: slug,
         }),
       })

@@ -58,7 +58,7 @@ ${challenge.style_traits.map((t) => `- ${t}`).join('\n')}
 POCKET: ${challenge.pocket}
 
 You are scoring user-written bars in this artist's style. The artist did not
-write these bars; the user did. Score what they actually wrote — don't be
+write these bars; the user did. Score what they actually wrote, don't be
 flattering, don't be cruel. Be a coach.
 
 Return ONLY valid JSON matching the format. No prose, no markdown, no code fences.`

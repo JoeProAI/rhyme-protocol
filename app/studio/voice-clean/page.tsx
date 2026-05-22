@@ -1,7 +1,7 @@
 import VoiceIsolator from '@/components/VoiceIsolator'
 
 export const metadata = {
-  title: 'Voice Cleaner — Free Vocal Isolation | Rhyme Protocol',
+  title: 'Voice Cleaner, Free Vocal Isolation | Rhyme Protocol',
   description:
     'Free AI vocal isolation for rappers and producers. Strip beats, room noise, and background bleed from any audio. Powered by ElevenLabs. Up to 25MB, 30 free isolations a day.',
 }
@@ -18,7 +18,7 @@ export default function VoiceCleanPage() {
         </h1>
         <p className="text-base text-text-secondary leading-relaxed max-w-xl">
           Phone recording over a beat, voice memo on a noisy bus, rough demo
-          you cut on the train — drop it in. We strip the music and the room
+          you cut on the train, drop it in. We strip the music and the room
           and hand back the acapella. Free. No login. 30 a day per session.
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function VoiceCleanPage() {
 
       <p className="mt-8 text-xs text-muted leading-relaxed">
         Audio runs through ElevenLabs Audio Isolation. We don't store the file
-        on our servers — it's processed and returned. If you publish anything
+        on our servers, it's processed and returned. If you publish anything
         derived from copyrighted material, that's on you.
       </p>
     </div>

@@ -8,7 +8,7 @@ interface ChatMessage {
 }
 
 /**
- * ChallengeChat — conversational sparring partner styled after the artist.
+ * ChallengeChat, conversational sparring partner styled after the artist.
  * Backed by /api/challenge/chat. Free, unlimited (chat_messages tier).
  *
  * Frame is explicit: this is an AI sparring partner, NOT the artist.
@@ -24,7 +24,7 @@ export default function ChallengeChat({
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Yo. I'm a sparring partner — not ${firstName}. Trained on his documented style. Drop bars, ask for angles, throw a draft at me. I'll give you real notes, not gold stars.`,
+      content: `Yo. I'm a sparring partner, not ${firstName}. Trained on his documented style. Drop bars, ask for angles, throw a draft at me. I'll give you real notes, not gold stars.`,
     },
   ])
   const [input, setInput] = useState('')
@@ -79,7 +79,7 @@ export default function ChallengeChat({
 
   const seedPrompts = [
     `What's Cal's pocket actually doing different?`,
-    `I'm stuck on the second verse — give me an angle.`,
+    `I'm stuck on the second verse, give me an angle.`,
     `Roast my opening bar honestly.`,
     `What would Cal cut from this draft?`,
   ].map((s) => s.replace('Cal', firstName))

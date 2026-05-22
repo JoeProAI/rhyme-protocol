@@ -18,7 +18,7 @@ export async function generateMetadata({
   if (!c) return { title: 'Challenge | Rhyme Protocol' }
   return {
     title: `${c.artist_name} Challenge | Rhyme Protocol`,
-    description: `Write bars in the pocket of ${c.artist_name}. AI judges with real notes. Tribute mode — links route back to the artist.`,
+    description: `Write bars in the pocket of ${c.artist_name}. AI judges with real notes. Tribute mode, links route back to the artist.`,
   }
 }
 
