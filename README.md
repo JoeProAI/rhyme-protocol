@@ -1,217 +1,162 @@
-# 🚀 JoePro.ai - AI Innovation Hub
+# Rhyme Protocol
 
-**Production-Ready Next.js 14 Application**
+AI tools for rap artists. Lyrics, covers, and cinematic music videos.
 
-A complete cyberpunk-themed AI platform featuring multi-provider AI integrations, custom agents, real-time tech feeds, and Rainmeter desktop widget support. Built for instant Vercel deployment.
+Live at [www.rhymeprotocol.com](https://www.rhymeprotocol.com)
 
-## ✨ Features
+---
 
-- 🎨 **Cyberpunk Neon UI** - Interactive neural network canvas with smooth animations
-- 🤖 **Multi-Provider AI** - OpenAI GPT-4 and xAI Grok integration
-- 🧠 **Custom Agents** - Build and deploy specialized AI agents with custom prompts
-- 📡 **Live Tech Feeds** - Real-time aggregation from 8 top tech sources
-- 🎮 **Rainmeter Support** - JSON API endpoints for desktop widgets
-- ⚡ **Edge Runtime** - Global edge deployment with streaming responses
-- 🔒 **Production Security** - Environment-based secrets, security headers, rate limiting
+## Studio
 
-## 🛠️ Tech Stack
+Four tools, one workflow.
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + Custom Neon Theme
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **AI SDKs**: OpenAI, Vercel AI SDK
-- **RSS**: rss-parser
-- **Deployment**: Vercel (Edge Runtime)
+- **Lyric Lab** — Write bars with AI assistance. Rhyme suggestions, verse continuation, fresh generation.
+- **Cover Art** — Album covers and single artwork. Multiple styles and moods.
+- **Video Gen** — Cinematic music videos from a prompt. Six rap-tuned style presets (Street, Trap, Luxury, Conscious, Old School, Storytelling).
+- **Audio Lab** — Voice synthesis, sound effects, beat generation.
 
-## 📦 Production Deployment
+No sign-in. No credit gate. Free access while in early access.
 
-**This project is optimized for Vercel production deployment.**
+---
 
-### Deploy to Vercel (Recommended)
+## Stack
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/joepro&env=OPENAI_API_KEY,XAI_API_KEY)
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS, Geist Sans + Mono |
+| Hosting | Vercel (Edge runtime where useful) |
+| Auth | Anonymous sessions (cookie-based, optional Firebase) |
+| Storage | Upstash Redis (graceful in-memory fallback) |
+| Payments | Stripe (currently bypassed for free access) |
 
-**Or manually:**
+### AI providers
 
-1. Push to GitHub
-2. Import to Vercel: https://vercel.com/new
-3. Set environment variables in Vercel Dashboard
-4. Deploy
+| Use | Provider |
+|---|---|
+| Lyrics | OpenAI GPT-4 class + xAI Grok |
+| Cover art | OpenAI GPT-Image |
+| Frame prediction | Google Gemini (Nano Banana) |
+| Video generation | Luma Ray-2 |
+| Voice | ElevenLabs |
 
-**See `VERCEL_DEPLOY.md` for complete production deployment instructions.**
+---
 
-## 🔑 Required Environment Variables
-
-Set these in **Vercel Dashboard → Settings → Environment Variables**:
-
-### OPENAI_API_KEY (Required)
-- **Get from**: https://platform.openai.com/api-keys
-- **Format**: `sk-...`
-- **Used for**: GPT-4 model access, agent execution
-
-### XAI_API_KEY (Required)
-- **Get from**: https://x.ai/api
-- **Format**: `xai-...`
-- **Used for**: Grok model access, xAI provider
-
-### DAYTONA_TOKEN (Optional)
-- **Status**: Future integration (stub implemented)
-- **Required**: No
-
-## 📡 API Endpoints
-
-### LLM Proxy
-```
-POST /api/llm
-Body: {
-  "provider": "openai" | "xai",
-  "model": "gpt-4-turbo-preview" | "grok-beta",
-  "messages": [{ "role": "user", "content": "Hello" }],
-  "temperature": 0.7,
-  "stream": false
-}
-```
-
-### Tech Feeds
-```
-GET /api/feeds
-Returns: { feeds: [...], count: number }
-```
-
-### Rainmeter Gadgets
-```
-GET /api/gadgets/latest
-GET /api/gadgets/status
-```
-
-## 🎮 Rainmeter Integration
-
-Example Rainmeter skin configuration:
-
-```ini
-[MeasureLatest]
-Measure=Plugin
-Plugin=WebParser
-URL=https://your-domain.vercel.app/api/gadgets/latest
-RegExp="headline":"([^"]*)"
-UpdateRate=300
-
-[MeterHeadline]
-Meter=String
-MeasureName=MeasureLatest
-Text=%1
-FontSize=12
-FontColor=0,240,255
-AntiAlias=1
-```
-
-## 📁 Project Structure
-
-```
-joepro/
-├── app/
-│   ├── api/
-│   │   ├── llm/route.ts          # Unified LLM proxy
-│   │   ├── feeds/route.ts        # RSS feed aggregator
-│   │   ├── agents/run/route.ts   # Agent execution
-│   │   └── gadgets/              # Rainmeter endpoints
-│   ├── apps/page.tsx             # AI apps hub
-│   ├── agents/page.tsx           # Agent management
-│   ├── feeds/page.tsx            # Tech feeds
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Splash page
-├── components/
-│   ├── Hero.tsx                  # Animated hero section
-│   ├── NeuralNetCanvas.tsx       # Interactive canvas
-│   └── GlowCard.tsx              # Neon card component
-├── lib/
-│   ├── llm/                      # AI client libraries
-│   ├── feeds/                    # Feed scraping
-│   └── agents/                   # Agent config
-├── public/
-│   └── assets/                   # Static assets
-└── vercel.json                   # Vercel config
-```
-
-## 🎨 Customization
-
-### Theme Colors
-
-Edit `tailwind.config.ts` to customize neon colors:
-
-```typescript
-neon: {
-  pink: '#FF10F0',
-  cyan: '#00F0FF',
-  purple: '#B026FF',
-  // Add your colors
-}
-```
-
-### Feed Sources
-
-Edit `lib/feeds/sources.ts` to add/remove RSS feeds.
-
-## 📚 Documentation
-
-### 🚀 Deployment Guides
-- **`QUICK_DEPLOY.md`** - ⚡ 5-minute deployment guide (START HERE)
-- **`VERCEL_INTEGRATION.md`** - 📋 Complete service integration review
-- **`INTEGRATION_SUMMARY.md`** - ✅ All services verified and ready
-- **`VERCEL_DEPLOY.md`** - Detailed Vercel deployment
-- **`FIREBASE_DEPLOY.md`** - Firebase alternative (limited features)
-
-### 📊 Project Documentation
-- **`FINAL_REPORT.md`** - Complete project summary
-- **`PRODUCTION_READY.md`** - Production readiness report
-- **`STATUS.md`** - Build status and integrations
-- **`README.md`** - This file
-
-### 🔒 Security
-- **`SECURITY_ALERT.md`** - Security best practices
-- **`.env.local.example`** - Environment variable template
-
-## ✅ Production Checklist
-
-- [x] Next.js 14 with App Router
-- [x] TypeScript strict mode
-- [x] Tailwind CSS with neon theme
-- [x] Framer Motion animations
-- [x] OpenAI & xAI integration
-- [x] Edge runtime for APIs
-- [x] Security headers configured
-- [x] Rate limiting implemented
-- [x] Error handling comprehensive
-- [x] Environment variables secured
-- [x] Vercel optimized
-- [x] Documentation complete
-
-## 🚀 Quick Deploy
+## Local dev
 
 ```bash
-# Clone or download project
-git clone https://github.com/yourusername/joepro.git
-cd joepro
+git clone https://github.com/JoeProAI/rhyme-protocol.git
+cd rhyme-protocol
+npm install
 
-# Push to your GitHub
-git remote set-url origin https://github.com/yourusername/your-repo.git
-git push
+# pull production env vars (requires `vercel login`)
+vercel link
+vercel env pull .env.local
 
-# Deploy via Vercel Dashboard
-# 1. Visit https://vercel.com/new
-# 2. Import your repository
-# 3. Add environment variables
-# 4. Deploy
+npm run dev
 ```
 
-**Your JoePro.ai instance will be live in ~5 minutes!**
+Opens at `http://localhost:3000`.
 
-## 📝 License
+### Required env vars
 
-MIT License - feel free to use this project for your own purposes.
+```
+OPENAI_API_KEY
+GEMINI_API_KEY
+LUMA_API_KEY
+XAI_API_KEY
+```
 
-## 🌟 Credits
+Optional:
 
-Built with ⚡ for Production by Machine AI using Next.js 14, Tailwind CSS, OpenAI, and xAI.# Last updated: Tue, Nov 18, 2025 10:33:02 PM
+```
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
+ELEVENLABS_API_KEY
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+FIREBASE_SERVICE_ACCOUNT
+FREE_ACCESS_UNLIMITED   # default true, set "false" to re-enable usage limits
+```
+
+---
+
+## API
+
+### Generate rap video
+
+```
+POST /api/video-gen/rap-video
+```
+
+```json
+{
+  "prompt": "rapper in dark studio",
+  "style": "trap",
+  "lyrics": "First line\nSecond line",
+  "lyricsFormat": "plain",
+  "segmentDuration": 9,
+  "targetDuration": 30
+}
+```
+
+### Check job
+
+```
+GET /api/video-gen/rap-video?jobId=<id>
+```
+
+### Style presets
+
+```
+GET /api/video-gen/presets
+GET /api/video-gen/presets?style=trap
+```
+
+### Usage
+
+```
+GET /api/usage/me            # current session usage
+POST /api/usage/track        # increment a counter
+POST /api/usage/can-use      # check before action
+```
+
+---
+
+## Project layout
+
+```
+app/
+  api/                  # all API routes (54 endpoints)
+  studio/               # lyric / cover / video / audio UIs
+  dashboard/            # usage overview
+  layout.tsx            # SEO + chrome
+  page.tsx              # home
+
+components/             # FloatingChat, NeuralBackground, etc.
+lib/
+  llm/                  # OpenAI + Grok clients
+  video-gen/            # rap pipeline + presets
+  usage-system.ts       # gating (currently in unlimited mode)
+  rate-limit.ts         # session-level limiter
+  redis.ts              # Upstash + in-memory fallback
+```
+
+---
+
+## Deploy
+
+Pushes to `main` auto-deploy to production via Vercel.
+
+```bash
+git push origin main
+# or, for an explicit production deploy:
+vercel --prod
+```
+
+---
+
+## License
+
+MIT.
