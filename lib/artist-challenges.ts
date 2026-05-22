@@ -44,9 +44,10 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     artist_name: 'Cal Scruby',
     status: 'tribute',
     intro:
-      'Cincinnati-bred, conversational pocket, midwest grit dressed in wit. ' +
+      'Cincinnati-bred, independent, conversational pocket, midwest grit dressed in wit. ' +
       'Cal writes like the kid you grew up with who somehow read more than you ' +
-      'and noticed everything you missed. Specific, self-aware, never forced.',
+      'and noticed everything you missed. Specific, self-aware, never forced. ' +
+      'He runs his own lane — no label calling shots — which is exactly why this is a tribute, not a takeover.',
     style_traits: [
       'Conversational delivery — bars feel like he\'s talking to one person, not the room',
       'Specificity over abstraction — names streets, people, brands, exact moments',
