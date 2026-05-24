@@ -92,7 +92,7 @@ export default function ChallengeChat({
             SPARRING PARTNER · {firstName.toUpperCase()}-STYLE
           </div>
           <div className="text-[10px] font-mono tracking-widest text-muted mt-0.5">
-            AI COACH · NOT THE ARTIST
+            DEEP DOSSIER · 50+ DATA POINTS · NOT THE ARTIST
           </div>
         </div>
         <button
