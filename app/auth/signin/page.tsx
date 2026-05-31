@@ -10,7 +10,7 @@ export default function SignIn() {
   const router = useRouter()
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !user.isAnonymous && !loading) {
       router.push('/studio/gallery')
     }
   }, [user, loading, router])

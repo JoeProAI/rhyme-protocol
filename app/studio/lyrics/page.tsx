@@ -40,7 +40,7 @@ interface LyricResult {
 }
 
 export default function LyricLab() {
-  const { user, signInAnonymously } = useAuth();
+  const { user } = useAuth();
   const [theme, setTheme] = useState('');
   const [style, setStyle] = useState<LyricStyle>('trap');
   const [model, setModel] = useState<AIModel>('both');
@@ -59,13 +59,6 @@ export default function LyricLab() {
   const [selectedVoice, setSelectedVoice] = useState('');
   const [voiceSearch, setVoiceSearch] = useState('');
   const [loadingVoices, setLoadingVoices] = useState(false);
-
-  // Auto sign-in guests anonymously so they can save creations
-  useEffect(() => {
-    if (!user) {
-      signInAnonymously().catch(console.error);
-    }
-  }, [user, signInAnonymously]);
 
   // Load saved lyrics from localStorage on mount
   useEffect(() => {

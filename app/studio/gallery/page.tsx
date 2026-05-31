@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { getGenerations, deleteGeneration as deleteGen, Generation } from '@/lib/firestore-generations'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function Gallery() {
-  const { user, loading: authLoading, signOut, signInAnonymously } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
+  const router = useRouter()
   const [generations, setGenerations] = useState<Generation[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -28,12 +30,14 @@ export default function Gallery() {
     }
   }
 
-  // Auto sign-in guests so they can see their creations
-  useEffect(() => {
-    if (!user && !authLoading) {
-      signInAnonymously().catch(console.error)
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push('/auth/signin')
+    } catch (err) {
+      console.error('Failed to sign out:', err)
     }
-  }, [user, authLoading, signInAnonymously])
+  }
 
   useEffect(() => {
     if (user) {
@@ -112,7 +116,7 @@ export default function Gallery() {
           )}
           {user && (
             <button 
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="inline-block mt-2 text-sm text-muted hover:text-accent transition-colors"
             >
               Sign out
