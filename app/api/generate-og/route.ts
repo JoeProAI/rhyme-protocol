@@ -9,32 +9,31 @@ function getOpenAIClient() {
 }
 
 /**
- * Generate the main OG image for JoePro.ai
+ * Generate the main OG image for Rhyme Protocol
  * GET /api/generate-og
  */
 export async function GET() {
   try {
     const prompt = `
-A premium, professional hero image for "JoePro.ai" - an AI development platform.
+A cinematic social hero image for "Rhyme Protocol" - an AI rap and hip-hop music video platform.
 
 Design:
-- Clean, modern gradient background (deep navy blue #0a1628 to rich purple #1a0a28)
-- Elegant gold accent color (#d4a017) for highlights
-- The text "JoePro.ai" prominently displayed in bold white modern font
-- Subtle glowing AI-themed elements: neural network nodes, code brackets, rocket icon
-- Professional tech company aesthetic like Vercel, Linear, or Stripe
-- Minimalist, not cluttered
-- Tagline below logo: "Build Smarter with AI"
+- Dark stage atmosphere with volumetric haze, laser light geometry, and dynamic motion streaks
+- Strong rap/hip-hop visual language: street energy, cinematic framing, premium textures
+- Futuristic AI motifs blended into music culture: waveform lattices, neural rhythm patterns, camera rigs
+- Center composition with clear negative space for social crop safety
+- Include text exactly: "RHYME PROTOCOL"
+- Optional subline in smaller text: "AI MUSIC VIDEO GENERATOR"
+- Color direction: obsidian black, electric cyan, and hot magenta accents
 
-NOT cyberpunk. NOT neon chaos. Clean, premium, trustworthy.
-Style: Modern SaaS landing page hero image, 16:9 aspect ratio, high contrast, professional.
+Style: Epic, modern, premium, high contrast, social-share-ready, 16:9, photorealistic digital artwork.
 `
 
     console.log('[OG Gen] Generating premium OG image...')
 
     const openai = getOpenAIClient()
     const response = await openai.images.generate({
-      model: 'gpt-image-1',
+      model: 'gpt-image-2',
       prompt,
       n: 1,
       size: '1536x1024',
@@ -52,7 +51,7 @@ Style: Modern SaaS landing page hero image, 16:9 aspect ratio, high contrast, pr
     return NextResponse.json({
       success: true,
       image: `data:image/png;base64,${imageBase64}`,
-      message: 'Save this image as public/og-image.png'
+      message: 'Save this image as public/og-image.png and/or public/twitter-image.png'
     })
 
   } catch (error) {

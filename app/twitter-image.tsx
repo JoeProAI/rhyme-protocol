@@ -1,0 +1,118 @@
+import { ImageResponse } from 'next/og'
+
+export const runtime = 'edge'
+export const alt = 'Rhyme Protocol - Make Epic AI Music Videos'
+export const size = {
+  width: 1200,
+  height: 630,
+}
+export const contentType = 'image/png'
+
+export default async function Image() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          background: 'linear-gradient(140deg, #05060a 0%, #0e1330 52%, #250f36 100%)',
+          position: 'relative',
+          padding: '56px 64px',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: -140,
+            right: -120,
+            width: 540,
+            height: 540,
+            background: 'radial-gradient(circle, rgba(0, 245, 255, 0.30) 0%, rgba(0, 245, 255, 0) 68%)',
+            borderRadius: '50%',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -180,
+            left: -120,
+            width: 560,
+            height: 560,
+            background: 'radial-gradient(circle, rgba(255, 35, 176, 0.28) 0%, rgba(255, 35, 176, 0) 70%)',
+            borderRadius: '50%',
+          }}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 86,
+              fontWeight: 900,
+              color: '#ffffff',
+              letterSpacing: '-3px',
+              lineHeight: 0.92,
+              textTransform: 'uppercase',
+            }}
+          >
+            RHYME PROTOCOL
+          </div>
+          <div
+            style={{
+              fontSize: 28,
+              color: '#7df8ff',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+            }}
+          >
+            Make Epic AI Music Videos
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 20,
+              color: '#f2f4ff',
+              letterSpacing: '0.9px',
+              opacity: 0.94,
+            }}
+          >
+            RAP. HIP-HOP. CINEMATIC AI.
+          </div>
+          <div
+            style={{
+              fontSize: 20,
+              color: '#f2f4ff',
+              letterSpacing: '0.8px',
+              opacity: 0.9,
+            }}
+          >
+            rhymeprotocol.com
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      ...size,
+    }
+  )
+}

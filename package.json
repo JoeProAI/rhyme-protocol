@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "social:generate": "node scripts/generate-social-images.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",

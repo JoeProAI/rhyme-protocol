@@ -13,7 +13,7 @@ import { Providers } from "@/components/providers";
 // SEO CONFIGURATION - RHYME PROTOCOL
 // ============================================
 const TWITTER_HANDLE = "@RhymeProtocol";
-const SITE_URL = "https://rhyme-protocol.vercel.app";
+const SITE_URL = "https://rhymeprotocol.com";
 const SITE_NAME = "Rhyme Protocol";
 const BRAND_NAME = "Rhyme Protocol";
 
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: "Rhyme Protocol – AI Music Video Generator",
+        alt: "Rhyme Protocol - AI music video generation",
       },
     ],
   },
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     description: "Generate cinematic rap and hip-hop music videos with AI.",
     site: TWITTER_HANDLE,
     creator: TWITTER_HANDLE,
-    images: [`${SITE_URL}/opengraph-image`],
+    images: [`${SITE_URL}/twitter-image`],
   },
   verification: {
     // Add your verification codes after claiming your sites:
