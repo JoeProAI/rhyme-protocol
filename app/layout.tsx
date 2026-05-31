@@ -20,15 +20,15 @@ const BRAND_NAME = "Rhyme Protocol";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Rhyme Protocol – AI Music Video Generator",
+    default: "Rhyme Protocol – Resources for Creators to Earn More",
     template: "%s | Rhyme Protocol",
   },
-  description: "Generate cinematic rap and hip-hop music videos with AI. Powered by GPT-Image, Luma Ray-2, and intelligent scene prediction.",
+  description: "Creator resources, playbooks, and practical tools that help artists and creators make more from what they already have.",
   keywords: [
-    "Rhyme Protocol", "AI music video", "rap video generator",
-    "hip-hop AI", "music video AI", "AI video generator",
-    "Luma AI", "GPT-Image", "AI rap video",
-    "music video generator", "AI music production"
+    "Rhyme Protocol", "creator resources", "creator monetization",
+    "creator economy", "artist monetization", "independent creators",
+    "creator growth", "creator playbooks", "creator tools",
+    "digital creator business", "creator revenue"
   ],
   authors: [{ name: "Rhyme Protocol", url: SITE_URL }],
   creator: "Rhyme Protocol",
@@ -48,8 +48,8 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "Rhyme Protocol – AI Music Video Generator",
-    description: "Generate cinematic rap and hip-hop music videos with AI.",
+    title: "Rhyme Protocol – Resources for Creators to Earn More",
+    description: "Practical resources that help creators turn existing work into more revenue.",
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
@@ -59,14 +59,14 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: "Rhyme Protocol - AI music video generation",
+        alt: "Rhyme Protocol - creator growth and monetization resources",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rhyme Protocol – AI Music Video Generator",
-    description: "Generate cinematic rap and hip-hop music videos with AI.",
+    title: "Rhyme Protocol – Resources for Creators to Earn More",
+    description: "Practical resources that help creators make more from what they already have.",
     site: TWITTER_HANDLE,
     creator: TWITTER_HANDLE,
     images: [`${SITE_URL}/twitter-image`],
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
   },
   other: {
-    "msapplication-TileColor": "#6366f1",
+    "msapplication-TileColor": "#1f1f1a",
     "theme-color": "#0a0a14",
   },
 };
@@ -98,7 +98,7 @@ const jsonLd = {
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
       name: "Rhyme Protocol",
-      description: "AI-powered music video generation platform for rap and hip-hop artists.",
+      description: "Creator resource platform focused on monetization, growth systems, and practical operating playbooks.",
       publisher: { "@id": `${SITE_URL}/#organization` }
     },
     {
@@ -106,12 +106,12 @@ const jsonLd = {
       "@id": `${SITE_URL}/#organization`,
       name: "Rhyme Protocol",
       url: SITE_URL,
-      description: "AI-powered music video generation platform."
+      description: "Creator-first platform helping people make more from what they already create."
     },
     {
       "@type": "SoftwareApplication",
-      name: "Rhyme Protocol Video Generator",
-      applicationCategory: "MultimediaApplication",
+      name: "Rhyme Protocol Creator Resource Hub",
+      applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       offers: {
         "@type": "Offer",

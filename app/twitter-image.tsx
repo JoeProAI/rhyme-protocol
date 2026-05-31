@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Rhyme Protocol - Make Epic AI Music Videos'
+export const alt = 'Rhyme Protocol - Creator resources to make more from what you have'
 export const size = {
   width: 1200,
   height: 630,
@@ -18,7 +18,7 @@ export default async function Image() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(140deg, #05060a 0%, #0e1330 52%, #250f36 100%)',
+          background: 'linear-gradient(140deg, #0d0f12 0%, #191d24 52%, #121412 100%)',
           position: 'relative',
           padding: '56px 64px',
           overflow: 'hidden',
@@ -31,7 +31,7 @@ export default async function Image() {
             right: -120,
             width: 540,
             height: 540,
-            background: 'radial-gradient(circle, rgba(0, 245, 255, 0.30) 0%, rgba(0, 245, 255, 0) 68%)',
+            background: 'radial-gradient(circle, rgba(207, 181, 114, 0.28) 0%, rgba(207, 181, 114, 0) 68%)',
             borderRadius: '50%',
           }}
         />
@@ -42,7 +42,7 @@ export default async function Image() {
             left: -120,
             width: 560,
             height: 560,
-            background: 'radial-gradient(circle, rgba(255, 35, 176, 0.28) 0%, rgba(255, 35, 176, 0) 70%)',
+            background: 'radial-gradient(circle, rgba(115, 157, 122, 0.24) 0%, rgba(115, 157, 122, 0) 70%)',
             borderRadius: '50%',
           }}
         />
@@ -69,14 +69,14 @@ export default async function Image() {
           </div>
           <div
             style={{
-              fontSize: 28,
-              color: '#7df8ff',
-              letterSpacing: '2px',
+              fontSize: 26,
+              color: '#f0e4c0',
+              letterSpacing: '1.4px',
               textTransform: 'uppercase',
               fontWeight: 700,
             }}
           >
-            Make Epic AI Music Videos
+            Resources for creators to earn more
           </div>
         </div>
 
@@ -90,13 +90,13 @@ export default async function Image() {
         >
           <div
             style={{
-              fontSize: 20,
+              fontSize: 22,
               color: '#f2f4ff',
-              letterSpacing: '0.9px',
+              letterSpacing: '0.4px',
               opacity: 0.94,
             }}
           >
-            RAP. HIP-HOP. CINEMATIC AI.
+            Playbooks. Tools. Revenue systems.
           </div>
           <div
             style={{

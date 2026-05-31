@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Rhyme Protocol - AI Music Video Generator'
+export const alt = 'Rhyme Protocol - Creator resources to earn more from what you already make'
 export const size = {
   width: 1200,
   height: 630,
@@ -18,7 +18,7 @@ export default async function Image() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(145deg, #06070b 0%, #101226 45%, #1a0f27 100%)',
+          background: 'linear-gradient(145deg, #0c0d10 0%, #151820 50%, #10110f 100%)',
           position: 'relative',
           padding: '56px 64px',
           overflow: 'hidden',
@@ -30,7 +30,7 @@ export default async function Image() {
           right: -160,
           width: 640,
           height: 640,
-          background: 'radial-gradient(circle, rgba(0, 235, 255, 0.28) 0%, rgba(0, 235, 255, 0) 68%)',
+          background: 'radial-gradient(circle, rgba(204, 175, 107, 0.26) 0%, rgba(204, 175, 107, 0) 68%)',
           borderRadius: '50%',
         }} />
         <div style={{
@@ -39,7 +39,7 @@ export default async function Image() {
           left: -180,
           width: 640,
           height: 640,
-          background: 'radial-gradient(circle, rgba(255, 30, 160, 0.24) 0%, rgba(255, 30, 160, 0) 70%)',
+          background: 'radial-gradient(circle, rgba(116, 168, 124, 0.20) 0%, rgba(116, 168, 124, 0) 70%)',
           borderRadius: '50%',
         }} />
 
@@ -62,11 +62,11 @@ export default async function Image() {
           <div style={{
             fontSize: 30,
             fontWeight: 600,
-            color: '#b6c3ff',
+            color: '#e3d7b2',
             letterSpacing: '2px',
             textTransform: 'uppercase',
           }}>
-            AI MUSIC VIDEO GENERATOR
+            CREATOR RESOURCE PROTOCOL
           </div>
         </div>
 
@@ -78,12 +78,11 @@ export default async function Image() {
         }}>
           <div style={{
             fontSize: 24,
-            color: '#76f5ff',
-            letterSpacing: '1.5px',
-            textTransform: 'uppercase',
+            color: '#f2e6bf',
+            letterSpacing: '0.8px',
             fontWeight: 700,
           }}>
-            Cinematic Rap Visuals with AI
+            Make more from what you already create.
           </div>
           <div style={{
             fontSize: 22,
