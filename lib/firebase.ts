@@ -23,6 +23,28 @@ export const storage = getStorage(app)
 // Auth providers
 const googleProvider = new GoogleAuthProvider()
 
+async function clearFirebaseAuthPersistence() {
+  if (typeof window === 'undefined') return
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const key = storage.key(i)
+      if (key?.startsWith('firebase:')) {
+        storage.removeItem(key)
+      }
+    }
+  }
+
+  if (window.indexedDB) {
+    await new Promise<void>((resolve) => {
+      const request = window.indexedDB.deleteDatabase('firebaseLocalStorageDb')
+      request.onsuccess = () => resolve()
+      request.onerror = () => resolve()
+      request.onblocked = () => resolve()
+    })
+  }
+}
+
 // Sign in with Google
 export async function signInWithGoogle() {
   try {
@@ -49,6 +71,7 @@ export async function signInAnon() {
 export async function signOut() {
   try {
     await firebaseSignOut(auth)
+    await clearFirebaseAuthPersistence()
   } catch (error) {
     console.error('Sign-out error:', error)
     throw error
