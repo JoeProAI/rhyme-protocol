@@ -7,6 +7,10 @@ import type { NextRequest } from 'next/server'
  * This enables pay-per-use without authentication
  */
 export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === '/news') {
+    return NextResponse.redirect('https://news.joepro.ai/news')
+  }
+
   const response = NextResponse.next()
   
   // Check if user has anonymous session
