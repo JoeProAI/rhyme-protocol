@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { estimateElevenLabsCost, recordApiUsage } from '@/lib/api-usage'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
     const audioBuffer = await response.arrayBuffer()
     const base64Audio = Buffer.from(audioBuffer).toString('base64')
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`
+    const duration = typeof duration_seconds === 'number' ? duration_seconds : 2
+
+    await recordApiUsage({
+      feature: 'studio_sound_effects',
+      provider: 'elevenlabs',
+      model: 'sound-generation',
+      endpoint: '/api/studio/sound-effects',
+      operation: 'sound_generation',
+      unit: 'seconds',
+      quantity: duration,
+      inputCharacters: text.length,
+      durationSeconds: duration,
+      costUsd: estimateElevenLabsCost('sfx', duration),
+      success: true,
+      metadata: { promptInfluence: prompt_influence || 0.3 },
+    })
 
     return NextResponse.json({ 
       audioUrl,

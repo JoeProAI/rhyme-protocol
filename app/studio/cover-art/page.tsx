@@ -50,7 +50,10 @@ export default function CoverArtStudio() {
     try {
       const response = await fetch('/api/studio/cover-art', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(user ? { 'x-rhyme-user-id': user.uid } : {}),
+        },
         body: JSON.stringify({ prompt, style, mood, aspectRatio }),
       });
 

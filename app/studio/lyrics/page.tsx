@@ -63,6 +63,25 @@ export default function LyricLab() {
   // Load saved lyrics from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('rhyme_last_lyrics');
+    const searchParams = new URLSearchParams(window.location.search);
+    const themeParam = searchParams.get('theme');
+    const styleParam = searchParams.get('style') as LyricStyle | null;
+    const barsParam = searchParams.get('bars');
+
+    if (themeParam) {
+      setTheme(themeParam);
+      if (styleParam && STYLES.some((s) => s.value === styleParam)) {
+        setStyle(styleParam);
+      }
+      if (barsParam) {
+        const parsedBars = Number(barsParam);
+        if (!Number.isNaN(parsedBars)) {
+          setBars(Math.min(32, Math.max(4, parsedBars)));
+        }
+      }
+      return;
+    }
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -206,7 +225,10 @@ export default function LyricLab() {
     try {
       const response = await fetch('/api/studio/lyrics', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(user ? { 'x-rhyme-user-id': user.uid } : {}),
+        },
         body: JSON.stringify({ 
           theme, 
           style, 

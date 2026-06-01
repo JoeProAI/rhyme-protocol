@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { estimateImageCost, recordApiUsage } from '@/lib/api-usage';
 
 export const maxDuration = 300;
 
@@ -72,6 +73,20 @@ export async function POST(request: NextRequest) {
       n: 1,
       size: size as '1024x1024' | '1536x1024' | '1024x1536',
       quality,
+    });
+
+    await recordApiUsage({
+      feature: 'studio_cover_art',
+      provider: 'openai',
+      model: 'gpt-image-1.5',
+      endpoint: '/api/studio/cover-art',
+      operation: 'image_generate',
+      unit: 'images',
+      quantity: 1,
+      imageCount: 1,
+      costUsd: estimateImageCost('gpt-image-1.5', quality, 1),
+      success: true,
+      metadata: { style, mood, aspectRatio, quality, size },
     });
 
     if (!response.data || response.data.length === 0) {

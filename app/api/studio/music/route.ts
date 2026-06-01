@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { estimateElevenLabsCost, recordApiUsage } from '@/lib/api-usage'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
@@ -26,11 +27,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Build enhanced prompt
     let enhancedPrompt = prompt
     if (genre) enhancedPrompt = `${genre} style: ${enhancedPrompt}`
     if (mood) enhancedPrompt = `${enhancedPrompt}, ${mood} mood`
-    if (instrumental) enhancedPrompt = `${enhancedPrompt} [instrumental only, no vocals]`
+    if (instrumental) {
+      enhancedPrompt = `Instrumental beat only. Do not include singing, rapping, spoken words, chants, humming, vocal chops, backing vocals, ad-libs, DJ tags, shoutouts, hooks, lyrics, or sampled voices. If the description mentions lyrics or vocals, treat those words as mood only and generate music with zero human voice. ${enhancedPrompt}`
+    }
 
     // Clamp duration between 10s and 300s (5 min)
     const clampedDuration = Math.min(Math.max(duration_seconds, 10), 300)
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           prompt: enhancedPrompt,
-          duration: clampedDuration,
+          music_length_ms: clampedDuration * 1000,
         }),
       }
     )
@@ -74,6 +76,21 @@ export async function POST(req: NextRequest) {
     const audioBuffer = await response.arrayBuffer()
     const base64Audio = Buffer.from(audioBuffer).toString('base64')
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`
+
+    await recordApiUsage({
+      feature: 'studio_music',
+      provider: 'elevenlabs',
+      model: 'music-compose',
+      endpoint: '/api/studio/music',
+      operation: 'music_compose',
+      unit: 'seconds',
+      quantity: clampedDuration,
+      inputCharacters: enhancedPrompt.length,
+      durationSeconds: clampedDuration,
+      costUsd: estimateElevenLabsCost('music', clampedDuration),
+      success: true,
+      metadata: { genre, mood, instrumental },
+    })
 
     return NextResponse.json({ 
       audioUrl,

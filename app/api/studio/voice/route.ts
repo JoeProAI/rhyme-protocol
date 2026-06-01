@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { estimateElevenLabsCost, recordApiUsage } from '@/lib/api-usage'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
@@ -201,6 +202,20 @@ export async function POST(req: NextRequest) {
     
     const base64Audio = Buffer.from(audioBuffer).toString('base64')
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`
+
+    await recordApiUsage({
+      feature: 'studio_voice',
+      provider: 'elevenlabs',
+      model: 'eleven_turbo_v2_5',
+      endpoint: '/api/studio/voice',
+      operation: 'text_to_speech',
+      unit: 'characters',
+      quantity: chunkToGenerate.length,
+      inputCharacters: chunkToGenerate.length,
+      costUsd: estimateElevenLabsCost('tts', chunkToGenerate.length),
+      success: true,
+      metadata: { voiceId, chunkIndex, totalChunks, preprocessForRap, speed },
+    })
 
     return NextResponse.json({ 
       audioUrl,

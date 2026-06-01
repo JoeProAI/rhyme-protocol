@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getChallenge } from '@/lib/artist-challenges'
 import { checkRateLimit, recordUsage, createRateLimitError, createRateLimitedResponse } from '@/lib/rate-limit'
+import { estimateElevenLabsCost, recordApiUsage } from '@/lib/api-usage'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -72,11 +73,11 @@ export async function POST(req: NextRequest) {
       MAX_DURATION
     )
 
-    let prompt = challenge.beat_prompt
+    let prompt = `Instrumental beat only. No vocals, no singing, no rapping, no spoken words, no vocal samples, no vocal chops, no humming, no chants, no ad-libs, no DJ tags, no shoutouts, no hooks, no lyrics. ${challenge.beat_prompt}`
     if (vibe && typeof vibe === 'string' && vibe.trim().length > 0) {
-      prompt += ` Additional direction: ${vibe.trim().slice(0, 200)}.`
+      prompt += ` Additional non-vocal musical direction only: ${vibe.trim().slice(0, 200)}.`
     }
-    prompt += ' Instrumental only, no vocals, no DJ tags, no shoutouts.'
+    prompt += ' If any text describes a voice or lyric, interpret it as instrumental texture only.'
 
     const elRes = await fetch('https://api.elevenlabs.io/v1/music/compose', {
       method: 'POST',
@@ -113,6 +114,21 @@ export async function POST(req: NextRequest) {
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`
 
     await recordUsage(rl.sessionId, 'audio_isolations', 1)
+
+    await recordApiUsage({
+      feature: 'challenge_beat',
+      provider: 'elevenlabs',
+      model: 'music-compose',
+      endpoint: '/api/challenge/beat',
+      operation: 'music_compose',
+      unit: 'seconds',
+      quantity: clampedDuration,
+      inputCharacters: prompt.length,
+      durationSeconds: clampedDuration,
+      costUsd: estimateElevenLabsCost('music', clampedDuration),
+      success: true,
+      metadata: { slug: challenge.slug, artist: challenge.artist_name, hasVibe: Boolean(vibe) },
+    })
 
     return createRateLimitedResponse(
       {

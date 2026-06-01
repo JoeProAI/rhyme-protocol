@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { estimateChatCost, recordApiUsage } from '@/lib/api-usage';
 
 // Lazy initialization
 let openaiClient: OpenAI | null = null;
@@ -108,7 +109,20 @@ RULES FOR EDITING:
 
 Your changes should feel like polish, not replacement. The artist should recognize their work, just better.`;
 
-async function generateWithGPT(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<string> {
+type LyricGeneration = {
+  source: string;
+  name: string;
+  lyrics: string;
+  provider: 'openai' | 'xai';
+  model: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+}
+
+async function generateWithGPT(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<LyricGeneration> {
   const openai = getOpenAI();
   const model = quality === 'premium'
     ? AI_PERSONALITIES.gpt.premiumModel
@@ -122,14 +136,26 @@ async function generateWithGPT(prompt: string, systemPrompt: string, quality: 'f
     temperature: 0.9,
     max_tokens: 1500,
   });
-  return response.choices[0]?.message?.content || '';
+  return {
+    source: 'gpt',
+    name: AI_PERSONALITIES.gpt.name,
+    lyrics: response.choices[0]?.message?.content || '',
+    provider: 'openai',
+    model,
+    usage: {
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+      totalTokens: response.usage?.total_tokens || 0,
+    },
+  };
 }
 
-async function generateWithGrok(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<string> {
+async function generateWithGrok(prompt: string, systemPrompt: string, quality: 'free' | 'premium' = 'free'): Promise<LyricGeneration> {
   try {
     const grok = getGrokClient();
+    const model = AI_PERSONALITIES.grok.model;
     const response = await grok.chat.completions.create({
-      model: AI_PERSONALITIES.grok.model,
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
@@ -137,7 +163,18 @@ async function generateWithGrok(prompt: string, systemPrompt: string, quality: '
       temperature: 0.9,
       max_tokens: 1500,
     });
-    return response.choices[0]?.message?.content || '';
+    return {
+      source: 'grok',
+      name: AI_PERSONALITIES.grok.name,
+      lyrics: response.choices[0]?.message?.content || '',
+      provider: 'xai',
+      model,
+      usage: {
+        inputTokens: response.usage?.prompt_tokens || 0,
+        outputTokens: response.usage?.completion_tokens || 0,
+        totalTokens: response.usage?.total_tokens || 0,
+      },
+    };
   } catch (error) {
     console.error('[Lyrics] Grok error, falling back:', error);
     return generateWithGPT(prompt, systemPrompt, quality);
@@ -278,25 +315,38 @@ Give me 5 GENIUS-LEVEL rhyme options:
         break;
     }
 
-    const results: { source: string; name: string; lyrics: string }[] = [];
+    const generations: LyricGeneration[] = [];
 
     if (model === 'gpt' || model === 'both') {
-      const gptLyrics = await generateWithGPT(userPrompt, systemPrompt, quality);
-      results.push({
-        source: 'gpt',
-        name: AI_PERSONALITIES.gpt.name,
-        lyrics: gptLyrics,
-      });
+      generations.push(await generateWithGPT(userPrompt, systemPrompt, quality));
     }
 
     if (model === 'grok' || model === 'both') {
-      const grokLyrics = await generateWithGrok(userPrompt, systemPrompt, quality);
-      results.push({
-        source: 'grok',
-        name: AI_PERSONALITIES.grok.name,
-        lyrics: grokLyrics,
-      });
+      generations.push(await generateWithGrok(userPrompt, systemPrompt, quality));
     }
+
+    await Promise.all(generations.map((generation) => recordApiUsage({
+      feature: 'studio_lyrics',
+      provider: generation.provider,
+      model: generation.model,
+      endpoint: '/api/studio/lyrics',
+      operation: action,
+      unit: 'tokens',
+      quantity: generation.usage.totalTokens,
+      inputTokens: generation.usage.inputTokens,
+      outputTokens: generation.usage.outputTokens,
+      totalTokens: generation.usage.totalTokens,
+      costUsd: estimateChatCost(
+        generation.provider,
+        generation.model,
+        generation.usage.inputTokens,
+        generation.usage.outputTokens
+      ),
+      success: true,
+      metadata: { style, bars, quality, source: generation.source },
+    })));
+
+    const results = generations.map(({ source, name, lyrics }) => ({ source, name, lyrics }));
 
     return NextResponse.json({
       success: true,
