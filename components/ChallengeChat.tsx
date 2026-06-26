@@ -16,15 +16,26 @@ interface ChatMessage {
 export default function ChallengeChat({
   slug,
   artistName,
+  openingLine,
+  calibrationPoints,
+  seedPrompts,
 }: {
   slug: string
   artistName: string
+  openingLine?: string
+  calibrationPoints?: string[]
+  seedPrompts?: string[]
 }) {
   const firstName = artistName.split(' ')[0]
+  const replaceArtistTokens = (text: string) => text.replaceAll('{firstName}', firstName)
+  const opening =
+    openingLine
+      ? replaceArtistTokens(openingLine)
+      : `Send me 4 to 8 bars or the idea you keep dodging. I am not ${firstName}, but I am calibrated on the public craft profile. If it is vague, I will tell you where. If it works, I will tell you why.`
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Yo. I'm a sparring partner, not ${firstName}. I use his documented public style as a craft reference. Drop bars, ask for angles, throw a draft at me. I'll give you real notes, not gold stars.`,
+      content: opening,
     },
   ])
   const [input, setInput] = useState('')
@@ -56,10 +67,9 @@ export default function ChallengeChat({
       setMessages([...next, { role: 'assistant', content: data.reply }])
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Chat failed.')
-      setMessages(next) // keep user msg, no assistant reply
+      setMessages(next)
     } finally {
       setBusy(false)
-      // refocus
       setTimeout(() => inputRef.current?.focus(), 0)
     }
   }
@@ -72,27 +82,36 @@ export default function ChallengeChat({
   }
 
   function reset() {
-    setMessages([messages[0]]) // keep opening line
+    setMessages([messages[0]])
     setError(null)
     setInput('')
   }
 
-  const seedPrompts = [
-    `What's Cal's pocket doing that I can study safely?`,
-    `I'm stuck on the second verse, give me an angle.`,
-    `Roast my opening bar honestly.`,
-    `What should I cut from this draft?`,
-  ].map((s) => s.replace('Cal', firstName))
+  const prompts = (seedPrompts || [
+    'Run the 8-bar pocket drill.',
+    'Give me three colder angles for this prompt.',
+    'Roast this draft like I asked for it.',
+    "Make this feel closer to {firstName}'s craft without copying him.",
+  ]).map(replaceArtistTokens)
+
+  const points = calibrationPoints || [
+    'pocket',
+    'punchline discipline',
+    'internal rhyme',
+    'specific scenes',
+    'no cosplay',
+  ]
 
   return (
     <div className="border border-border-subtle bg-surface">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+      <div className="flex items-start justify-between gap-4 px-4 py-3 border-b border-border-subtle">
         <div>
           <div className="text-[10px] font-mono tracking-widest text-accent">
-            SPARRING PARTNER · {firstName.toUpperCase()} CRAFT REFERENCE
+            SPAR_WITH_THE_STYLE · {firstName.toUpperCase()}-CALIBRATED
           </div>
-          <div className="text-[10px] font-mono tracking-widest text-muted mt-0.5">
-            DEEP DOSSIER · 50+ DATA POINTS · NOT THE ARTIST
+          <div className="mt-1 max-w-2xl text-xs text-text-secondary leading-relaxed">
+            Close-read craft conversation. Blunt line notes, angle work, pocket checks.
+            Still not the artist, not a clone, not a ghostwriter.
           </div>
         </div>
         <button
@@ -102,6 +121,22 @@ export default function ChallengeChat({
         >
           RESET
         </button>
+      </div>
+
+      <div className="border-b border-border-subtle px-4 py-3">
+        <div className="mb-2 text-[10px] font-mono tracking-widest text-muted">
+          CALIBRATED FOR
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {points.map((point) => (
+            <span
+              key={point}
+              className="border border-border-subtle bg-background/40 px-2 py-1 text-[10px] font-mono uppercase tracking-widest text-text-secondary"
+            >
+              {point}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div
@@ -127,7 +162,7 @@ export default function ChallengeChat({
         {busy && (
           <div className="flex justify-start">
             <div className="text-xs font-mono tracking-widest text-muted animate-pulse">
-              THINKING…
+              CHECKING THE POCKET…
             </div>
           </div>
         )}
@@ -140,7 +175,7 @@ export default function ChallengeChat({
 
       {messages.length <= 1 && !busy && (
         <div className="px-4 pb-2 flex flex-wrap gap-2">
-          {seedPrompts.map((p) => (
+          {prompts.map((p) => (
             <button
               key={p}
               onClick={() => setInput(p)}
@@ -160,7 +195,7 @@ export default function ChallengeChat({
           onKeyDown={handleKey}
           rows={2}
           maxLength={1500}
-          placeholder={`Ask ${firstName}-style for notes, angles, or a roast.`}
+          placeholder="Send bars, ask for angles, or ask what to cut."
           className="flex-1 bg-transparent text-sm text-text font-mono resize-none focus:outline-none px-2 py-1 placeholder:text-muted"
           disabled={busy}
         />

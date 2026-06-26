@@ -43,6 +43,10 @@ export interface ArtistChallenge {
   featured_video?: { id: string; title: string }
   // Receipt of how the style profile was built. Builds trust.
   research_credit?: string
+  // Optional sparring chat calibration. UI-only copy, no artist lyrics.
+  sparring_opening?: string
+  sparring_points?: string[]
+  sparring_prompts?: string[]
 }
 
 export const ARTIST_CHALLENGES: ArtistChallenge[] = [
@@ -81,6 +85,21 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     ],
     pocket:
       '82-96 BPM core range. Vocals sit slightly behind the snare with internal rhymes inside the bar, plain speech preserved even as density climbs. Mix is dry and forward, not effected.',
+    sparring_opening:
+      'Send me 4 to 8 bars or the idea you keep dodging. I am not {firstName}, but I am calibrated on the public craft profile: dry pocket, quiet punchlines, specific details, no cheerleading. If it is vague, I will tell you where. If it works, I will tell you why.',
+    sparring_points: [
+      'dry pocket',
+      'quiet punchlines',
+      'internal rhyme',
+      'specific scenes',
+      'no cosplay',
+    ],
+    sparring_prompts: [
+      'Run the 8-bar pocket drill.',
+      'Give me three colder angles for this prompt.',
+      'Roast this draft like I asked for it.',
+      "Make this feel closer to {firstName}'s craft without copying him.",
+    ],
     challenge_prompts: [
       '16 bars about a hometown that felt smaller after the first serious trip out.',
       '12 bars about a parent noticing you got quieter once the work started working.',

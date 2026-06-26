@@ -155,10 +155,16 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
           <SectionHeader
             step={challenge.beat_prompt ? '03' : '02'}
             title="SPAR_WITH_THE_STYLE"
-            sub={`AI sparring partner using ${challenge.artist_name}'s documented public style as a craft reference. Not the artist. Not a clone. Won't flatter you.`}
+            sub={`Dossier-calibrated pocket coach for ${challenge.artist_name}'s public craft profile. Close-read line notes, blunt angle work, no impersonation.`}
             meta="FREE · UNLIMITED"
           />
-          <ChallengeChat slug={challenge.slug} artistName={challenge.artist_name} />
+          <ChallengeChat
+            slug={challenge.slug}
+            artistName={challenge.artist_name}
+            openingLine={challenge.sparring_opening}
+            calibrationPoints={challenge.sparring_points}
+            seedPrompts={challenge.sparring_prompts}
+          />
         </section>
 
         {/* THE ARTIST: featured video + style cards + links */}
