@@ -155,7 +155,7 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
           <SectionHeader
             step={challenge.beat_prompt ? '03' : '02'}
             title="SPAR_WITH_THE_STYLE"
-            sub={`Dossier-calibrated pocket coach for ${challenge.artist_name}'s public craft profile. Close-read line notes, blunt angle work, no impersonation.`}
+            sub={`Live writing-room chat calibrated on ${challenge.artist_name}'s public craft profile. Talk through hooks, angles, rewrites, and what to cut. No impersonation.`}
             meta="FREE · UNLIMITED"
           />
           <ChallengeChat

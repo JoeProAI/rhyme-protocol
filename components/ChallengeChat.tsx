@@ -31,7 +31,7 @@ export default function ChallengeChat({
   const opening =
     openingLine
       ? replaceArtistTokens(openingLine)
-      : `Send me 4 to 8 bars or the idea you keep dodging. I am not ${firstName}, but I am calibrated on the public craft profile. If it is vague, I will tell you where. If it works, I will tell you why.`
+      : `Talk to me like we are in the room. Send the ugly premise, half hook, one line, or the problem. I am not ${firstName}. I am a craft sparring partner calibrated on the public profile. I will ask questions, push back, and help you find the real scene.`
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
@@ -88,10 +88,10 @@ export default function ChallengeChat({
   }
 
   const prompts = (seedPrompts || [
-    'Run the 8-bar pocket drill.',
-    'Give me three colder angles for this prompt.',
-    'Roast this draft like I asked for it.',
-    "Make this feel closer to {firstName}'s craft without copying him.",
+    'I have an idea but no angle.',
+    'Talk me through this hook.',
+    'Ask me the question that gets the verse unstuck.',
+    "I need this closer to {firstName}'s craft without cosplay.",
   ]).map(replaceArtistTokens)
 
   const points = calibrationPoints || [
@@ -107,10 +107,10 @@ export default function ChallengeChat({
       <div className="flex items-start justify-between gap-4 px-4 py-3 border-b border-border-subtle">
         <div>
           <div className="text-[10px] font-mono tracking-widest text-accent">
-            SPAR_WITH_THE_STYLE · {firstName.toUpperCase()}-CALIBRATED
+            SPAR_WITH_THE_STYLE · LIVE ROOM
           </div>
           <div className="mt-1 max-w-2xl text-xs text-text-secondary leading-relaxed">
-            Close-read craft conversation. Blunt line notes, angle work, pocket checks.
+            Chat through angles, lines, hooks, and second takes. {firstName}-calibrated craft.
             Still not the artist, not a clone, not a ghostwriter.
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function ChallengeChat({
         {busy && (
           <div className="flex justify-start">
             <div className="text-xs font-mono tracking-widest text-muted animate-pulse">
-              CHECKING THE POCKET…
+              LISTENING BACK…
             </div>
           </div>
         )}
@@ -188,17 +188,22 @@ export default function ChallengeChat({
       )}
 
       <div className="border-t border-border-subtle p-3 flex gap-2 items-end">
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          rows={2}
-          maxLength={1500}
-          placeholder="Send bars, ask for angles, or ask what to cut."
-          className="flex-1 bg-transparent text-sm text-text font-mono resize-none focus:outline-none px-2 py-1 placeholder:text-muted"
-          disabled={busy}
-        />
+        <div className="flex-1">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            rows={2}
+            maxLength={1500}
+            placeholder="Talk through an angle, paste bars, or ask for the next move."
+            className="w-full bg-transparent text-sm text-text font-mono resize-none focus:outline-none px-2 py-1 placeholder:text-muted"
+            disabled={busy}
+          />
+          <div className="px-2 text-[10px] font-mono tracking-widest text-muted">
+            ENTER TO SEND · SHIFT+ENTER FOR BARS
+          </div>
+        </div>
         <button
           onClick={send}
           disabled={busy || !input.trim()}

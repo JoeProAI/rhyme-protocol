@@ -86,7 +86,7 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     pocket:
       '82-96 BPM core range. Vocals sit slightly behind the snare with internal rhymes inside the bar, plain speech preserved even as density climbs. Mix is dry and forward, not effected.',
     sparring_opening:
-      'Send me 4 to 8 bars or the idea you keep dodging. I am not {firstName}, but I am calibrated on the public craft profile: dry pocket, quiet punchlines, specific details, no cheerleading. If it is vague, I will tell you where. If it works, I will tell you why.',
+      'Talk to me like we are in the room. Send the ugly premise, half hook, one line, or the problem. I am not {firstName}. I am calibrated on the public craft profile: dry pocket, quiet punchlines, specific details, no cheerleading. I will ask questions, push back, and help you find the real scene.',
     sparring_points: [
       'dry pocket',
       'quiet punchlines',
@@ -95,10 +95,10 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
       'no cosplay',
     ],
     sparring_prompts: [
-      'Run the 8-bar pocket drill.',
-      'Give me three colder angles for this prompt.',
-      'Roast this draft like I asked for it.',
-      "Make this feel closer to {firstName}'s craft without copying him.",
+      'I have an idea but no angle.',
+      'Talk me through this hook.',
+      'Ask me the question that gets the verse unstuck.',
+      "I need this closer to {firstName}'s craft without cosplay.",
     ],
     challenge_prompts: [
       '16 bars about a hometown that felt smaller after the first serious trip out.',
