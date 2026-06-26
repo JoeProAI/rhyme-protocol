@@ -208,6 +208,7 @@ export async function POST(req: NextRequest) {
     const fewShots = dossier ? buildFewShotMessages(dossier.fewShots) : []
 
     let reply: string
+    let modelName = backend.name
     try {
       reply = await callBackend(backend, systemPrompt, fewShots, trimmed)
     } catch (primaryErr: unknown) {
@@ -224,6 +225,7 @@ export async function POST(req: NextRequest) {
           authHeader: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
         }
         reply = await callBackend(fallback, systemPrompt, fewShots, trimmed)
+        modelName = fallback.name
       } else {
         throw primaryErr
       }
@@ -233,7 +235,7 @@ export async function POST(req: NextRequest) {
       reply,
       artist: challenge.artist_name,
       slug: challenge.slug,
-      model: backend.name,
+      model: modelName,
     })
   } catch (err: unknown) {
     console.error('[Challenge Chat] Error:', err)
