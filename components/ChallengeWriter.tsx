@@ -52,8 +52,8 @@ export default function ChallengeWriter({
         throw new Error(data.error || 'Judge failed')
       }
       setResult(data)
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Judge failed')
     } finally {
       setSubmitting(false)
     }
@@ -100,7 +100,7 @@ export default function ChallengeWriter({
         <textarea
           value={bars}
           onChange={(e) => setBars(e.target.value)}
-          placeholder={`Write your bars on the prompt above.\n\nNo wrong answers. The judge wants honesty over polish.`}
+          placeholder={`Write your bars on the prompt above.\n\nYour story. Style-pocket craft constraints. Honesty over polish.`}
           rows={14}
           className="w-full bg-transparent p-4 text-sm sm:text-base text-text font-mono resize-none focus:outline-none focus:ring-1 focus:ring-accent leading-relaxed"
           maxLength={4000}

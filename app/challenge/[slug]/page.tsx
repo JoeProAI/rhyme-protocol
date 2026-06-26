@@ -38,38 +38,60 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
   const todayPrompt = getDailyPromptForChallenge(challenge)
   const firstName = challenge.artist_name.split(' ')[0]
   const lastName = challenge.artist_name.split(' ').slice(1).join(' ')
+  const proofPoints = [
+    'No lyrics stored',
+    'No voice clone',
+    'Official links first',
+    `${challenge.style_traits.length} style receipts`,
+  ]
 
   return (
     <div className="min-h-[calc(100vh-4rem)] w-full overflow-x-hidden">
       {/* HERO: full-bleed cinematic prompt */}
       <section className="relative border-b border-border-subtle">
         <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.04] via-transparent to-transparent pointer-events-none" />
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-12">
-          <div className="mb-6 flex items-center justify-between">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-12">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <Link
               href="/challenge"
               className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-accent transition-colors"
             >
               ALL CHALLENGES
             </Link>
-            <span className="text-[10px] font-mono tracking-widest text-muted">
+            <span className="border border-border-subtle px-3 py-1 text-[10px] font-mono tracking-widest text-muted">
               {challenge.status === 'official' ? 'OFFICIAL' : 'TRIBUTE MODE'}
             </span>
           </div>
 
-          <div className="mb-8">
-            <h1 className="text-5xl sm:text-7xl font-display tracking-tight leading-[0.95] mb-4">
-              <span className="text-text">{firstName.toUpperCase()}</span>
-              <span className="text-accent">_{(lastName || 'CHALLENGE').toUpperCase()}</span>
-            </h1>
-            <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-2xl">
-              {challenge.intro}
-            </p>
+          <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_280px] lg:items-end">
+            <div>
+              <p className="mb-3 text-[10px] font-mono tracking-[0.35em] text-accent">
+                WRITE IN THE POCKET, NOT THE PERSONA
+              </p>
+              <h1 className="text-5xl sm:text-7xl font-display tracking-tight leading-[0.95] mb-4">
+                <span className="text-text">{firstName.toUpperCase()}</span>
+                <span className="text-accent">_{(lastName || 'CHALLENGE').toUpperCase()}</span>
+              </h1>
+              <p className="text-sm sm:text-base text-text-secondary leading-relaxed max-w-3xl">
+                {challenge.intro}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {proofPoints.map((point) => (
+                <div
+                  key={point}
+                  className="border border-border-subtle bg-surface/70 px-3 py-3 text-[10px] font-mono uppercase tracking-widest text-text-secondary"
+                >
+                  {point}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Today's prompt as the main moment */}
           <div className="border border-accent/40 bg-accent/[0.03] backdrop-blur-sm">
-            <div className="flex items-center justify-between border-b border-accent/20 px-5 py-2">
+            <div className="flex flex-col gap-2 border-b border-accent/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-[10px] font-mono tracking-widest text-accent">
                 TODAY'S PROMPT
               </span>
@@ -79,20 +101,25 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
               <p className="text-xl sm:text-3xl font-display tracking-tight text-text leading-[1.15] mb-3">
                 {todayPrompt}
               </p>
-              <p className="text-xs text-text-secondary">{challenge.pocket}</p>
+              <div className="grid gap-3 border-t border-accent/20 pt-4 sm:grid-cols-[1fr_auto] sm:items-start">
+                <p className="text-xs text-text-secondary leading-relaxed">{challenge.pocket}</p>
+                <span className="border border-accent/30 px-3 py-1 text-[10px] font-mono tracking-widest text-accent">
+                  YOUR STORY ONLY
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Credibility receipt */}
           {challenge.research_credit && (
-            <p className="mt-4 text-[10px] font-mono tracking-widest text-muted leading-relaxed">
+            <p className="mt-4 max-w-3xl text-[10px] font-mono tracking-widest text-muted leading-relaxed">
               {challenge.research_credit}
             </p>
           )}
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-16">
         {/* STEP 1: COOK A BEAT */}
         {challenge.beat_prompt && (
           <section>
@@ -113,7 +140,7 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
           <SectionHeader
             step={challenge.beat_prompt ? '02' : '01'}
             title="WRITE_THE_BARS"
-            sub="Sit with the prompt. No wrong answers. Be honest before you're clever."
+            sub="Use the pocket as a constraint. Keep the biography yours."
             meta="JUDGED ON 6 AXES"
           />
           <ChallengeWriter
@@ -128,10 +155,16 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
           <SectionHeader
             step={challenge.beat_prompt ? '03' : '02'}
             title="SPAR_WITH_THE_STYLE"
-            sub={`AI sparring partner trained on ${challenge.artist_name}'s documented public style. Not the artist himself. Won't flatter you.`}
+            sub={`Live writing-room chat calibrated on ${challenge.artist_name}'s public craft profile. Talk through hooks, angles, rewrites, and what to cut. No impersonation.`}
             meta="FREE · UNLIMITED"
           />
-          <ChallengeChat slug={challenge.slug} artistName={challenge.artist_name} />
+          <ChallengeChat
+            slug={challenge.slug}
+            artistName={challenge.artist_name}
+            openingLine={challenge.sparring_opening}
+            calibrationPoints={challenge.sparring_points}
+            seedPrompts={challenge.sparring_prompts}
+          />
         </section>
 
         {/* THE ARTIST: featured video + style cards + links */}
@@ -187,7 +220,7 @@ export default function ChallengePage({ params }: { params: { slug: string } }) 
             step="DEEP"
             title="STYLE_BREAKDOWN"
             sub="What the judge is actually scoring against. No vibes, no guesses."
-            meta="13 TRAITS · 10 THEMES"
+            meta={`${challenge.style_traits.length} TRAITS · ${challenge.themes.length} THEMES`}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border border-border-subtle bg-surface p-5">
