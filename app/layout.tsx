@@ -20,15 +20,15 @@ const BRAND_NAME = "Rhyme Protocol";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Rhyme Protocol – Resources for Creators to Earn More",
+    default: "Rhyme Protocol | AI Tools for Rap Artists",
     template: "%s | Rhyme Protocol",
   },
   description: "AI-powered tools for rap artists to write sharper lyrics, create cover art, and generate cinematic music videos.",
   keywords: [
-    "Rhyme Protocol", "creator resources", "creator monetization",
-    "creator economy", "artist monetization", "independent creators",
-    "creator growth", "creator playbooks", "creator tools",
-    "digital creator business", "creator revenue"
+    "Rhyme Protocol", "AI rap tools", "rap lyrics generator",
+    "AI lyrics", "hip hop AI", "rap artist tools",
+    "cover art generator", "AI music video generator", "lyric lab",
+    "music visuals", "artist challenges"
   ],
   authors: [{ name: "Rhyme Protocol", url: SITE_URL }],
   creator: "Rhyme Protocol",
@@ -105,7 +105,7 @@ const jsonLd = {
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
       name: "Rhyme Protocol",
-      description: "Creator resource platform focused on monetization, growth systems, and practical operating playbooks.",
+      description: "AI-powered creative suite for rap artists to write lyrics, generate cover art, and create cinematic music videos.",
       publisher: { "@id": `${SITE_URL}/#organization` }
     },
     {
@@ -113,12 +113,12 @@ const jsonLd = {
       "@id": `${SITE_URL}/#organization`,
       name: "Rhyme Protocol",
       url: SITE_URL,
-      description: "Creator-first platform helping people make more from what they already create."
+      description: "Rhyme Protocol builds AI tools for rap artists, from lyric writing to cover art and music-video generation."
     },
     {
       "@type": "SoftwareApplication",
-      name: "Rhyme Protocol Creator Resource Hub",
-      applicationCategory: "BusinessApplication",
+      name: "Rhyme Protocol AI Tools for Rap Artists",
+      applicationCategory: "MultimediaApplication",
       operatingSystem: "Web",
       offers: {
         "@type": "Offer",
