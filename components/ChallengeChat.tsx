@@ -7,6 +7,13 @@ interface ChatMessage {
   content: string
 }
 
+interface ChatThread {
+  id: string
+  title: string
+  updatedAt: number
+  messages: ChatMessage[]
+}
+
 /**
  * ChallengeChat, conversational sparring partner styled after the artist.
  * Backed by /api/challenge/chat. Free, unlimited (chat_messages tier).
@@ -41,12 +48,93 @@ export default function ChallengeChat({
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeThreadId, setActiveThreadId] = useState(() => `thread-${Date.now()}`)
+  const [threads, setThreads] = useState<ChatThread[]>([])
+  const [storageReady, setStorageReady] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const storageKey = `rhyme-protocol:challenge-chat:${slug}`
+
+  function focusInput() {
+    window.requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
+  function openingMessage(): ChatMessage {
+    return {
+      role: 'assistant',
+      content: opening,
+    }
+  }
+
+  function getThreadTitle(threadMessages: ChatMessage[]) {
+    const firstUserMessage = threadMessages.find((message) => message.role === 'user')?.content
+    if (!firstUserMessage) return 'NEW CHAT'
+    return firstUserMessage.replace(/\s+/g, ' ').slice(0, 48)
+  }
+
+  function cleanThreads(nextThreads: ChatThread[]) {
+    return nextThreads
+      .filter((thread) => thread.messages.some((message) => message.role === 'user'))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 8)
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, busy])
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey)
+      if (!saved) {
+        setStorageReady(true)
+        focusInput()
+        return
+      }
+      const parsed = JSON.parse(saved) as { activeThreadId?: string; threads?: ChatThread[] }
+      const savedThreads = Array.isArray(parsed.threads) ? cleanThreads(parsed.threads) : []
+      const savedActiveThread = savedThreads.find((thread) => thread.id === parsed.activeThreadId)
+      if (savedThreads.length > 0) {
+        const activeThread = savedActiveThread || savedThreads[0]
+        setThreads(savedThreads)
+        setActiveThreadId(activeThread.id)
+        setMessages(activeThread.messages)
+      }
+    } catch {
+      window.localStorage.removeItem(storageKey)
+    } finally {
+      setStorageReady(true)
+      focusInput()
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    if (!storageReady) return
+
+    const now = Date.now()
+    setThreads((currentThreads) => {
+      const nextThreads = cleanThreads([
+        {
+          id: activeThreadId,
+          title: getThreadTitle(messages),
+          updatedAt: now,
+          messages,
+        },
+        ...currentThreads.filter((thread) => thread.id !== activeThreadId),
+      ])
+
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({ activeThreadId, threads: nextThreads })
+      )
+
+      return nextThreads
+    })
+  }, [activeThreadId, messages, storageKey, storageReady])
+
+  useEffect(() => {
+    if (!busy) focusInput()
+  }, [busy, activeThreadId])
 
   async function send() {
     const text = input.trim()
@@ -56,6 +144,7 @@ export default function ChallengeChat({
     setInput('')
     setBusy(true)
     setError(null)
+    focusInput()
     try {
       const res = await fetch('/api/challenge/chat', {
         method: 'POST',
@@ -70,7 +159,6 @@ export default function ChallengeChat({
       setMessages(next)
     } finally {
       setBusy(false)
-      setTimeout(() => inputRef.current?.focus(), 0)
     }
   }
 
@@ -81,10 +169,21 @@ export default function ChallengeChat({
     }
   }
 
-  function reset() {
-    setMessages([messages[0]])
+  function startNewChat() {
+    setActiveThreadId(`thread-${Date.now()}`)
+    setMessages([openingMessage()])
     setError(null)
     setInput('')
+    focusInput()
+  }
+
+  function loadThread(thread: ChatThread) {
+    if (busy) return
+    setActiveThreadId(thread.id)
+    setMessages(thread.messages)
+    setError(null)
+    setInput('')
+    focusInput()
   }
 
   const prompts = (seedPrompts || [
@@ -114,13 +213,18 @@ export default function ChallengeChat({
             Still not the artist, not a clone, not a ghostwriter.
           </div>
         </div>
-        <button
-          onClick={reset}
-          disabled={busy || messages.length <= 1}
-          className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-text transition-colors disabled:opacity-30"
-        >
-          RESET
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="hidden text-right text-[10px] font-mono uppercase tracking-widest text-muted sm:block">
+            {threads.length > 0 ? `${threads.length} saved` : 'auto-saves'}
+          </div>
+          <button
+            onClick={startNewChat}
+            disabled={busy || messages.length <= 1}
+            className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-text transition-colors disabled:opacity-30"
+          >
+            NEW CHAT
+          </button>
+        </div>
       </div>
 
       <div className="border-b border-border-subtle px-4 py-3">
@@ -138,6 +242,30 @@ export default function ChallengeChat({
           ))}
         </div>
       </div>
+
+      {threads.length > 0 && (
+        <div className="border-b border-border-subtle px-4 py-3">
+          <div className="mb-2 text-[10px] font-mono tracking-widest text-muted">
+            RECENT CHATS
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {threads.map((thread) => (
+              <button
+                key={thread.id}
+                onClick={() => loadThread(thread)}
+                disabled={busy}
+                className={`shrink-0 border px-2 py-1 text-left text-[10px] font-mono uppercase tracking-widest transition-colors disabled:opacity-40 ${
+                  thread.id === activeThreadId
+                    ? 'border-accent text-accent bg-accent/5'
+                    : 'border-border-subtle text-text-secondary hover:text-accent'
+                }`}
+              >
+                {thread.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -178,7 +306,10 @@ export default function ChallengeChat({
           {prompts.map((p) => (
             <button
               key={p}
-              onClick={() => setInput(p)}
+              onClick={() => {
+                setInput(p)
+                focusInput()
+              }}
               className="text-[10px] font-mono tracking-widest text-text-secondary hover:text-accent border border-border-subtle px-2 py-1 transition-colors"
             >
               {p}
@@ -198,7 +329,6 @@ export default function ChallengeChat({
             maxLength={1500}
             placeholder="Talk through an angle, paste bars, or ask for the next move."
             className="w-full bg-transparent text-sm text-text font-mono resize-none focus:outline-none px-2 py-1 placeholder:text-muted"
-            disabled={busy}
           />
           <div className="px-2 text-[10px] font-mono tracking-widest text-muted">
             ENTER TO SEND · SHIFT+ENTER FOR BARS
