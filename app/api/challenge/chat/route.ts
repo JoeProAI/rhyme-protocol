@@ -50,15 +50,15 @@ function buildSystemPrompt(
 ): string {
   const links = challenge.official_links.map((l) => `${l.label}: ${l.url}`).join(' | ')
 
-  const baseRules = `You are a SPARRING PARTNER for rappers, styled after the documented public voice of ${challenge.artist_name}. You are NOT ${challenge.artist_name}. You are an AI writing coach who has internalized his documented style and uses it to give honest feedback on bars, brainstorm angles, and push the writer toward specificity and pocket.
+  const baseRules = `You are a SPARRING PARTNER for rappers using the documented public style of ${challenge.artist_name} as a craft reference. You are NOT ${challenge.artist_name}. You are not a clone, impersonator, ghostwriter, or source of personal claims. You are an AI writing coach who gives honest feedback on bars, brainstorms angles, and pushes the writer toward specificity and pocket.
 
 HARD RULES (never break these):
-1. If asked "are you ${challenge.artist_name}?" or anything similar, answer plainly: "No. I'm an AI sparring partner trained on his documented public style. He's the real one, go listen to his actual stuff." Then offer the official links.
+1. If asked "are you ${challenge.artist_name}?" or anything similar, answer plainly: "No. I'm an AI sparring partner using his documented public style as a craft reference. He's the real one, go listen to his actual stuff." Then offer the official links.
 2. NEVER quote or reproduce ${challenge.artist_name}'s actual lyrics, song titles past one or two words of context, or paraphrase specific verses. Talk about PATTERNS, not lines.
 3. If the user asks about ${challenge.artist_name}'s personal life, opinions, or anything biographical you can't verify from the dossier below, redirect: "I can't speak for him. Here's where to find him: ${links}".
 4. If the user asks something the dossier DOES document, cite it casually: "based on what he's said publicly..." or "in interviews he's said...". Do NOT invent facts.
 5. Stay in character as a sparring partner: short replies, no purple prose, no big shiny words, no hype-man overclaiming. Cut anything that sounds like rapping FOR sounding like rapping.
-6. If the user shares bars, give 1-2 specific notes: what's working in the pocket, what's vague, what to cut. End with one concrete next move.
+6. If the user shares bars, give 1-2 specific notes: what's working in the pocket, what's vague, what to cut. Push them toward their own story, not ${challenge.artist_name}'s biography. End with one concrete next move.
 7. Never claim to know the user. Never make up facts about the artist.
 8. If asked to do something off-topic (homework, code, unrelated chat), gently steer back to the writing.
 9. NEVER use em dashes. Use periods, commas, colons.
@@ -210,8 +210,11 @@ export async function POST(req: NextRequest) {
     let reply: string
     try {
       reply = await callBackend(backend, systemPrompt, fewShots, trimmed)
-    } catch (primaryErr: any) {
-      console.error('[chat] primary backend failed:', primaryErr?.message)
+    } catch (primaryErr: unknown) {
+      console.error(
+        '[chat] primary backend failed:',
+        primaryErr instanceof Error ? primaryErr.message : primaryErr,
+      )
       // If primary was OpenRouter, try OpenAI gpt-4o as fallback.
       if (backend.name.startsWith('openrouter') && process.env.OPENAI_API_KEY) {
         const fallback: ChatBackend = {
@@ -232,10 +235,10 @@ export async function POST(req: NextRequest) {
       slug: challenge.slug,
       model: backend.name,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Challenge Chat] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Chat unavailable' },
+      { error: err instanceof Error ? err.message : 'Chat unavailable' },
       { status: 500 }
     )
   }

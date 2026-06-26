@@ -51,7 +51,7 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     artist_name: 'Cal Scruby',
     status: 'tribute',
     intro:
-      'Loveland, Ohio. Ohio State alum who recorded his first single in the OSU library. Independent the whole way, no label, writes and records and mixes his own stuff. Cal works the Cincinnati metro voice into a relaxed, mid-tempo pocket with internal rhymes that cluster inside the line instead of announcing themselves at the end. Punchlines land as quiet observations, not climactic reveals. Self-aware about race, industry, and faith without ever leaning on any of it as a costume. He runs his own lane with no major label calling shots, which is exactly why this is a tribute and not a takeover.',
+      'Loveland, Ohio by way of Ohio State and the Cincinnati orbit. Cal Scruby built an independent lane on dry, conversational delivery: mid-tempo pockets, internal rhyme clusters, punchlines that land like side comments, and self-awareness that keeps the flexes honest. This challenge studies that craft without quoting lyrics, cloning voice, or pretending to be him. Write your own story with the same restraint.',
     style_traits: [
       'Conversational pocket. Bars feel like one person talking to one person, not the room.',
       'Cadence sits slightly behind the snare. Controlled drag, never rushed, never showy.',
@@ -82,30 +82,30 @@ export const ARTIST_CHALLENGES: ArtistChallenge[] = [
     pocket:
       '82-96 BPM core range. Vocals sit slightly behind the snare with internal rhymes inside the bar, plain speech preserved even as density climbs. Mix is dry and forward, not effected.',
     challenge_prompts: [
-      '16 bars about the day Cincinnati felt small after you had seen New York.',
-      '12 bars about your dad noticing you got quieter once the music started working.',
-      '14 bars on the first time a venue outside Ohio knew your name before you walked in.',
+      '16 bars about a hometown that felt smaller after the first serious trip out.',
+      '12 bars about a parent noticing you got quieter once the work started working.',
+      '14 bars on the first time a room outside your city knew your name before you walked in.',
       '16 bars about choosing not to move to LA even after the numbers looked promising.',
-      '12 bars on the specific street in Loveland that still works as an emotional checkpoint.',
-      '14 bars about watching a younger white rapper copy the wrong parts of the culture.',
-      '16 bars on the quiet tension between Sunday faith and Friday-night ambition.',
+      '12 bars on the specific street that still works as an emotional checkpoint.',
+      '14 bars about watching a younger artist copy the wrong parts of the culture.',
+      '16 bars on the quiet tension between Sunday accountability and Friday-night ambition.',
       '12 bars about the first time a friend from back home asked for industry help.',
-      '14 bars on the difference between being from Cincinnati and being Cincinnati\'s rapper.',
-      '16 bars about turning down a co-sign that would have required altering your pocket.',
-      '12 bars on the moment streaming numbers failed to resolve a family conversation.',
+      '14 bars on the difference between being from a city and being that city\'s rapper.',
+      '16 bars about turning down a co-sign that would have required changing your pocket.',
+      '12 bars on the moment streaming numbers failed to fix a family conversation.',
       '14 bars about the producer who finally understood the low-in-the-mix request.',
-      '16 bars on the cost of staying independent when offers started including creative control.',
+      '16 bars on the cost of staying independent once offers started including creative control.',
       '12 bars about the friend who moved away and now only hears the music, not the person.',
-      '14 bars on the geography of doubt that still maps onto certain Cincinnati exits.',
+      '14 bars on the geography of doubt that still maps onto certain exits.',
       '16 bars reflecting on driving past the same high-school parking lot years later.',
-      '12 bars on the first time a blog wrote about you wrong and you decided not to correct them.',
+      '12 bars on the first time a blog described you wrong and you decided not to correct them.',
     ],
     judge_criteria: `You are scoring rap bars against the documented style of Cal Scruby. Score each axis 0-25, then give an overall 0-100 and 2-3 specific notes.
 
 AXES (0-25 each, six axes, normalize overall to 0-100):
 1. POCKET_AND_TIMING. Relaxed, slightly behind the snare. Even subdivisions. Penalize forced or showy cadence.
 2. INTERNAL_RHYME. Multis cluster inside the bar without breaking conversational clarity. Penalize density that disrupts plain speech.
-3. SPECIFICITY. Concrete regional or personal detail over abstract struggle language. Names of places, people, moments.
+3. SPECIFICITY. Concrete personal or regional detail over abstract struggle language. Names of places, people, moments.
 4. RESTRAINT_AND_WIT. Punchlines land as quiet observations, not isolated climactic reveals. Humor woven into substance.
 5. AUTHENTICITY. Race, industry, and self-doubt themes handled with self-awareness, never as costume. No external validation seeking.
 6. STRUCTURE. Even bar groupings (8 or 16). Hooks distinct from verses in melodic contour and rhyme scheme.
@@ -120,7 +120,7 @@ OUTPUT FORMAT (strict JSON, no markdown, no code fences):
 
 Map the six internal axes onto the four output keys as follows: pocket = (POCKET_AND_TIMING + INTERNAL_RHYME) / 2, specificity = SPECIFICITY, wit_weight = RESTRAINT_AND_WIT, authenticity = (AUTHENTICITY + STRUCTURE) / 2. All output values 0-25.
 
-Be honest, not flattering. Cal would respect honesty over a participation trophy.`,
+Be honest, not flattering. Reward restraint and specific lived detail. Penalize celebrity cosplay, biography theft, and anything that sounds like imitating Cal instead of applying the craft to the writer's own material.`,
     official_links: [
       { label: 'Site', url: 'https://calscruby.com/' },
       { label: 'Spotify', url: 'https://open.spotify.com/artist/2wcrc3fjebDRLVdtRUa3pu' },
@@ -129,15 +129,15 @@ Be honest, not flattering. Cal would respect honesty over a participation trophy
       { label: 'Instagram', url: 'https://www.instagram.com/calscruby/' },
     ],
     writer_note:
-      'Write like you are talking to one person at a kitchen table. No big shiny words. Specifics over symbols. Multis happen inside the bar, not at the end. Cal would tell you to cut anything that sounds like rapping for the sake of sounding like rapping.',
+      'Write like you are talking to one person at a kitchen table. No big shiny words. Specifics over symbols. Multis happen inside the bar, not just at the end. Cut anything that sounds like rapping for the sake of sounding like rapping.',
     beat_prompt:
-      'Moody, sample-driven boom-bap hip-hop instrumental at 88 BPM. Warm vinyl-textured drums slightly behind the pocket, dusty soul or jazz sample loop, sub-bass that breathes, sparse keys, no synth lead. Mid-tempo, introspective, Midwest underground feel. Leaves space for a conversational rapper sitting in the cut. No vocals, no DJ tags.',
+      'Moody, sample-driven boom-bap hip-hop instrumental at 88 BPM. Warm vinyl-textured drums slightly behind the pocket, dusty soul or jazz sample loop, sub-bass that breathes, sparse keys, no synth lead. Mid-tempo, introspective, Midwest-underground-adjacent feel. Leaves space for a conversational rapper sitting in the cut. No vocals, no DJ tags, no artist voice clone.',
     featured_video: {
       id: 'mZ4Mv8qnpOM',
       title: 'MONEY BUY DRUGS (Official Music Video)',
     },
     research_credit:
-      'Style profile built by quad-crew research synthesis (Pilot/Harper/Benjamin/Lucas, grok-4-fast, May 2026). 13 documented style traits. 17 prompt seeds. 6-axis judge rubric. Production palette derived from public catalog analysis.',
+      'Style profile built by quad-crew research synthesis (Pilot/Harper/Benjamin/Lucas, grok-4-fast, May 2026). 13 documented style traits. 17 prompt seeds. 6-axis judge rubric. No lyrics stored, no voice cloning, official links routed back to the artist.',
   },
 ]
 

@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       MAX_DURATION
     )
 
-    let prompt = `Instrumental beat only. No vocals, no singing, no rapping, no spoken words, no vocal samples, no vocal chops, no humming, no chants, no ad-libs, no DJ tags, no shoutouts, no hooks, no lyrics. ${challenge.beat_prompt}`
+    let prompt = `Instrumental beat only. No vocals, no singing, no rapping, no spoken words, no artist voice clone, no vocal samples, no vocal chops, no humming, no chants, no ad-libs, no DJ tags, no shoutouts, no hooks, no lyrics. ${challenge.beat_prompt}`
     if (vibe && typeof vibe === 'string' && vibe.trim().length > 0) {
       prompt += ` Additional non-vocal musical direction only: ${vibe.trim().slice(0, 200)}.`
     }
@@ -141,10 +141,10 @@ export async function POST(req: NextRequest) {
       rl.sessionId,
       200
     )
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[beat] unexpected error', err)
     return createRateLimitedResponse(
-      { error: err?.message || 'Beat generation failed.' },
+      { error: err instanceof Error ? err.message : 'Beat generation failed.' },
       rl.sessionId,
       500
     )

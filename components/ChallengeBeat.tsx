@@ -34,8 +34,8 @@ export default function ChallengeBeat({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`)
       setAudioUrl(data.audioUrl)
-    } catch (e: any) {
-      setError(e.message || 'Beat generation failed.')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Beat generation failed.')
     } finally {
       setBusy(false)
     }
@@ -44,8 +44,8 @@ export default function ChallengeBeat({
   return (
     <div>
       <p className="text-xs text-text-secondary leading-relaxed mb-3">
-        Instrumental beat in {firstName}&apos;s documented production palette.
-        Mid-tempo, sample-driven, leaves room for a conversational rapper.
+        Instrumental beat around {firstName}&apos;s documented production palette.
+        Mid-tempo, sample-driven, and deliberately not a clone.
         Hit generate and write the verse over it.
       </p>
 
@@ -117,7 +117,7 @@ export default function ChallengeBeat({
         <div className="mt-2">
           <audio controls src={audioUrl} className="w-full" />
           <p className="mt-2 text-[10px] font-mono tracking-widest text-muted leading-relaxed">
-            AI-generated instrumental in {firstName}&apos;s documented production style. Not his actual beat. Use freely for your submission. If you ship something derived from this commercially, credit AI + write your own.
+            AI-generated instrumental around {firstName}&apos;s documented production lane. Not his actual beat, not his voice. Use freely for your submission. If you ship something derived from this commercially, credit AI + write your own.
           </p>
         </div>
       )}

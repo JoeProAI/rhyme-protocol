@@ -57,9 +57,10 @@ ${challenge.style_traits.map((t) => `- ${t}`).join('\n')}
 
 POCKET: ${challenge.pocket}
 
-You are scoring user-written bars in this artist's style. The artist did not
-write these bars; the user did. Score what they actually wrote, don't be
-flattering, don't be cruel. Be a coach.
+You are scoring user-written bars against this craft profile. The artist did not
+write these bars; the user did. Do not reward artist biography theft, voice
+imitation, or pretending to be the artist. Score what they actually wrote, don't
+be flattering, don't be cruel. Be a coach.
 
 Return ONLY valid JSON matching the format. No prose, no markdown, no code fences.`
 
@@ -96,20 +97,16 @@ Score them now. Return ONLY the JSON.`
       )
     }
 
-    // Sanity-clamp scores
-    const clamp = (n: any) => Math.max(0, Math.min(100, Number(n) || 0))
+    const clamp = (n: unknown, max: number) => Math.max(0, Math.min(max, Number(n) || 0))
     const scores = {
-      pocket: clamp(parsed.scores?.pocket),
-      specificity: clamp(parsed.scores?.specificity),
-      wit_weight: clamp(parsed.scores?.wit_weight),
-      authenticity: clamp(parsed.scores?.authenticity),
+      pocket: clamp(parsed.scores?.pocket, 25),
+      specificity: clamp(parsed.scores?.specificity, 25),
+      wit_weight: clamp(parsed.scores?.wit_weight, 25),
+      authenticity: clamp(parsed.scores?.authenticity, 25),
     }
     const overall =
-      clamp(parsed.overall) ||
-      Math.round(
-        (scores.pocket + scores.specificity + scores.wit_weight + scores.authenticity) /
-          4,
-      )
+      clamp(parsed.overall, 100) ||
+      Math.round(scores.pocket + scores.specificity + scores.wit_weight + scores.authenticity)
 
     return NextResponse.json({
       scores,
@@ -119,10 +116,10 @@ Score them now. Return ONLY the JSON.`
       artist: challenge.artist_name,
       slug: challenge.slug,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Challenge Judge] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Judge unavailable' },
+      { error: err instanceof Error ? err.message : 'Judge unavailable' },
       { status: 500 },
     )
   }

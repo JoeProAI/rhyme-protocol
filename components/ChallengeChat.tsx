@@ -24,7 +24,7 @@ export default function ChallengeChat({
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Yo. I'm a sparring partner, not ${firstName}. Trained on his documented style. Drop bars, ask for angles, throw a draft at me. I'll give you real notes, not gold stars.`,
+      content: `Yo. I'm a sparring partner, not ${firstName}. I use his documented public style as a craft reference. Drop bars, ask for angles, throw a draft at me. I'll give you real notes, not gold stars.`,
     },
   ])
   const [input, setInput] = useState('')
@@ -54,8 +54,8 @@ export default function ChallengeChat({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Failed (${res.status})`)
       setMessages([...next, { role: 'assistant', content: data.reply }])
-    } catch (e: any) {
-      setError(e.message || 'Chat failed.')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Chat failed.')
       setMessages(next) // keep user msg, no assistant reply
     } finally {
       setBusy(false)
@@ -78,10 +78,10 @@ export default function ChallengeChat({
   }
 
   const seedPrompts = [
-    `What's Cal's pocket actually doing different?`,
+    `What's Cal's pocket doing that I can study safely?`,
     `I'm stuck on the second verse, give me an angle.`,
     `Roast my opening bar honestly.`,
-    `What would Cal cut from this draft?`,
+    `What should I cut from this draft?`,
   ].map((s) => s.replace('Cal', firstName))
 
   return (
@@ -89,7 +89,7 @@ export default function ChallengeChat({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <div>
           <div className="text-[10px] font-mono tracking-widest text-accent">
-            SPARRING PARTNER · {firstName.toUpperCase()}-STYLE
+            SPARRING PARTNER · {firstName.toUpperCase()} CRAFT REFERENCE
           </div>
           <div className="text-[10px] font-mono tracking-widest text-muted mt-0.5">
             DEEP DOSSIER · 50+ DATA POINTS · NOT THE ARTIST
