@@ -13,22 +13,22 @@ import { Providers } from "@/components/providers";
 // SEO CONFIGURATION - RHYME PROTOCOL
 // ============================================
 const TWITTER_HANDLE = "@RhymeProtocol";
-const SITE_URL = "https://rhymeprotocol.com";
+const SITE_URL = "https://www.rhymeprotocol.com";
 const SITE_NAME = "Rhyme Protocol";
 const BRAND_NAME = "Rhyme Protocol";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Rhyme Protocol – Resources for Creators to Earn More",
+    default: "Rhyme Protocol | AI Tools for Rap Artists",
     template: "%s | Rhyme Protocol",
   },
-  description: "Creator resources, playbooks, and practical tools that help artists and creators make more from what they already have.",
+  description: "AI-powered tools for rap artists to write sharper lyrics, create cover art, and generate cinematic music videos.",
   keywords: [
-    "Rhyme Protocol", "creator resources", "creator monetization",
-    "creator economy", "artist monetization", "independent creators",
-    "creator growth", "creator playbooks", "creator tools",
-    "digital creator business", "creator revenue"
+    "Rhyme Protocol", "AI rap tools", "rap lyrics generator",
+    "AI lyrics", "hip hop AI", "rap artist tools",
+    "cover art generator", "AI music video generator", "lyric lab",
+    "music visuals", "artist challenges"
   ],
   authors: [{ name: "Rhyme Protocol", url: SITE_URL }],
   creator: "Rhyme Protocol",
@@ -48,28 +48,35 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "Rhyme Protocol – Resources for Creators to Earn More",
-    description: "Practical resources that help creators turn existing work into more revenue.",
+    title: "Rhyme Protocol | AI Tools for Rap Artists",
+    description: "Lyrics, cover art, and cinematic music videos powered by AI.",
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: "en_US",
     images: [
       {
-        url: `${SITE_URL}/opengraph-image`,
+        url: `${SITE_URL}/opengraph-image?v=rap-tools-20260626`,
         width: 1200,
         height: 630,
-        alt: "Rhyme Protocol - creator growth and monetization resources",
+        alt: "Rhyme Protocol - AI tools for rap artists",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rhyme Protocol – Resources for Creators to Earn More",
-    description: "Practical resources that help creators make more from what they already have.",
+    title: "Rhyme Protocol | AI Tools for Rap Artists",
+    description: "Lyrics, cover art, and cinematic music videos powered by AI.",
     site: TWITTER_HANDLE,
     creator: TWITTER_HANDLE,
-    images: [`${SITE_URL}/twitter-image`],
+    images: [
+      {
+        url: `${SITE_URL}/twitter-image?v=rap-tools-20260626`,
+        alt: "Rhyme Protocol - AI tools for rap artists",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   verification: {
     // Add your verification codes after claiming your sites:
@@ -98,7 +105,7 @@ const jsonLd = {
       "@id": `${SITE_URL}/#website`,
       url: SITE_URL,
       name: "Rhyme Protocol",
-      description: "Creator resource platform focused on monetization, growth systems, and practical operating playbooks.",
+      description: "AI-powered creative suite for rap artists to write lyrics, generate cover art, and create cinematic music videos.",
       publisher: { "@id": `${SITE_URL}/#organization` }
     },
     {
@@ -106,12 +113,12 @@ const jsonLd = {
       "@id": `${SITE_URL}/#organization`,
       name: "Rhyme Protocol",
       url: SITE_URL,
-      description: "Creator-first platform helping people make more from what they already create."
+      description: "Rhyme Protocol builds AI tools for rap artists, from lyric writing to cover art and music-video generation."
     },
     {
       "@type": "SoftwareApplication",
-      name: "Rhyme Protocol Creator Resource Hub",
-      applicationCategory: "BusinessApplication",
+      name: "Rhyme Protocol AI Tools for Rap Artists",
+      applicationCategory: "MultimediaApplication",
       operatingSystem: "Web",
       offers: {
         "@type": "Offer",

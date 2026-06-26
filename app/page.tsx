@@ -2,12 +2,36 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import DailyPromptCard from '@/components/DailyPromptCard';
 
+const HOME_OG_IMAGE = '/opengraph-image?v=rap-tools-20260626';
+const HOME_TWITTER_IMAGE = '/twitter-image?v=rap-tools-20260626';
+
 export const metadata: Metadata = {
   title: 'Rhyme Protocol | AI Tools for Rap Artists',
   description: 'The complete AI platform for rap artists. Generate lyrics, create album covers, and produce cinematic music videos.',
   openGraph: {
     title: 'Rhyme Protocol | AI Tools for Rap Artists',
     description: 'Lyrics, covers, and music videos powered by AI',
+    images: [
+      {
+        url: HOME_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: 'Rhyme Protocol - AI tools for rap artists',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Rhyme Protocol | AI Tools for Rap Artists',
+    description: 'Lyrics, covers, and music videos powered by AI',
+    images: [
+      {
+        url: HOME_TWITTER_IMAGE,
+        alt: 'Rhyme Protocol - AI tools for rap artists',
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
 };
 
