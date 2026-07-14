@@ -26,6 +26,8 @@ export const FREE_LIMITS = {
   // Capped + earnable (high cost)
   video_generations: 3,
   sandbox_hours: 2,
+  // ClipChain multi-shot Seedance clips (~$1.85 each) — 1 free/day, earnable
+  clip_generations: 1,
 }
 
 // Bonus added per successful share-to-X (or other social referral).
@@ -34,6 +36,7 @@ export const SHARE_BONUS = {
   video_generations: 5,    // 3 base + 15 = up to 18/day
   cover_art: 10,           // 15 base + 30 = up to 45/day
   sandbox_hours: 2,        // 2 base + 6 = up to 8/day
+  clip_generations: 2,     // 1 base + 6 = up to 7/day
 }
 
 // Global daily $ ceiling across the whole site (USD). When exceeded, expensive
@@ -41,7 +44,7 @@ export const SHARE_BONUS = {
 export const DAILY_BUDGET_USD = Number(process.env.DAILY_BUDGET_USD || '10')
 
 // Which usage types are protected by the global $ ceiling.
-const EXPENSIVE_TYPES: UsageType[] = ['video_generations', 'sandbox_hours', 'cover_art']
+const EXPENSIVE_TYPES: UsageType[] = ['video_generations', 'sandbox_hours', 'cover_art', 'clip_generations']
 
 // Pricing (cost to you, for tracking)
 export const COSTS = {
@@ -54,6 +57,7 @@ export const COSTS = {
   sandbox_hour: 0.05,     // ~$0.05 per sandbox hour
   ai_assist: 0.003,       // ~$0.003 per AI assist
   audio_isolation: 0.01,  // ~$0.01 per minute isolated (ElevenLabs)
+  clip_segment: 1.85,     // ~$1.85 per ClipChain 15s multi-shot clip (Seedance 2.0 Fast)
 }
 
 // Pricing for users (if they pay)
@@ -66,6 +70,7 @@ export const USER_PRICING = {
   agent_call: 0.01,       // $0.01 per agent call
   sandbox_hour: 0.10,     // $0.10 per sandbox hour
   ai_assist: 0.01,        // $0.01 per AI assist
+  clip_segment: 4.99,     // $4.99 per ClipChain clip
 }
 
 // Coupon tiers - give different amounts of credits
@@ -102,7 +107,7 @@ export const COUPON_TIERS = {
   },
 }
 
-export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists' | 'audio_isolations'
+export type UsageType = 'lyric_generations' | 'cover_art' | 'video_generations' | 'chat_messages' | 'image_edits' | 'agent_calls' | 'sandbox_hours' | 'ai_assists' | 'audio_isolations' | 'clip_generations'
 
 /**
  * Redis key for the per-session share bonus counter.
@@ -324,7 +329,7 @@ export async function getUsageData(sessionId: string): Promise<{
     redisGet<{ total_cost: number; breakdown: Record<string, number> }>(monthlyKey),
   ])
   
-  const usageTypes: UsageType[] = ['chat_messages', 'video_generations', 'image_edits', 'agent_calls', 'sandbox_hours', 'ai_assists']
+  const usageTypes: UsageType[] = ['chat_messages', 'video_generations', 'image_edits', 'agent_calls', 'sandbox_hours', 'ai_assists', 'clip_generations']
   
   const dailyUsage: Record<string, { used: number; limit: number; remaining: number }> = {}
   
