@@ -30,6 +30,8 @@ const BodySchema = z.object({
   // Board flow: a user-edited storyboard skips the LLM and generates exactly
   // what's on the cards.
   plan: PlanSchema.optional(),
+  // From /api/clipchain/audio — the soundtrack laid under the final cut.
+  audioPath: z.string().max(300).optional(),
 })
 
 const SHOTS = 3
@@ -49,12 +51,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style, plan: editedPlan } = parsed.data
+    const { prompt, style, plan: editedPlan, audioPath } = parsed.data
 
     const cookieStore = cookies()
     let sessionId = cookieStore.get('anon_session')?.value
     const isNewSession = !sessionId
     if (!sessionId) sessionId = generateSessionId()
+
+    // An upload may only be attached by the session that made it.
+    if (audioPath && !audioPath.startsWith(`clipchain/uploads/${sessionId}/`)) {
+      return NextResponse.json({ error: 'Audio not found for this session' }, { status: 403 })
+    }
 
     // The paygate: 1 free clip/day, share-to-X earns more, card = unlimited.
     const gate = await checkUsage(sessionId, 'clip_generations')
@@ -85,6 +92,7 @@ export async function POST(req: NextRequest) {
       current: 0,
       secondsPerShot: SECONDS_PER_SHOT,
       resolution: RESOLUTION,
+      audioPath,
       totalCost: 0,
     }
 

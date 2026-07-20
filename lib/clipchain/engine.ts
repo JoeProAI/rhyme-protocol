@@ -67,6 +67,7 @@ export interface ClipJob {
   secondsPerShot: number
   resolution: string
   videoUrl?: string
+  audioPath?: string
   totalCost: number
   tickErrors?: number
   wastedCost?: number
@@ -498,8 +499,35 @@ async function concatShots(job: ClipJob): Promise<Buffer> {
     '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', '24', '-an',
     '-movflags', '+faststart', '-y', outPath,
   ])
-  const buf = await readFile(outPath)
-  await Promise.all([...locals, listPath, outPath].map((p) => unlink(p).catch(() => {})))
+
+  const cleanup: string[] = [...locals, listPath, outPath]
+  let finalPath = outPath
+
+  // Audio underlay: the user's track (music, vocal, anything) laid under the
+  // cut, trimmed to the video's length with a fade-out. Shots are generated
+  // silent; the uploaded audio IS the soundtrack.
+  if (job.audioPath) {
+    const audioLocal = join(dir, 'track')
+    await bucket.file(job.audioPath).download({ destination: audioLocal })
+    const durationSec = job.shots.length * job.secondsPerShot
+    const fadeStart = Math.max(0, durationSec - 1.2)
+    const muxPath = join(dir, 'final-audio.mp4')
+    await execFileAsync(ff, [
+      '-hide_banner', '-loglevel', 'error',
+      '-i', outPath, '-i', audioLocal,
+      '-map', '0:v', '-map', '1:a',
+      '-c:v', 'copy',
+      '-c:a', 'aac', '-b:a', '192k',
+      '-af', `afade=t=out:st=${fadeStart}:d=1.2`,
+      '-t', String(durationSec),
+      '-movflags', '+faststart', '-y', muxPath,
+    ])
+    cleanup.push(audioLocal, muxPath)
+    finalPath = muxPath
+  }
+
+  const buf = await readFile(finalPath)
+  await Promise.all(cleanup.map((p) => unlink(p).catch(() => {})))
   return buf
 }
 

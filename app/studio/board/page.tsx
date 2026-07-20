@@ -75,6 +75,8 @@ export default function PipelineBoardPage() {
   const [prompt, setPrompt] = useState('')
   const [preset, setPreset] = useState<string | null>(null)
   const [shotCount, setShotCount] = useState(3)
+  const [audio, setAudio] = useState<{ path: string; name: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -88,6 +90,23 @@ export default function PipelineBoardPage() {
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current) }, [])
 
   const styleText = preset ? STYLE_PRESETS.find((p) => p.id === preset)?.style : undefined
+
+  const uploadAudio = async (file: File) => {
+    setUploading(true)
+    setErrorMessage('')
+    try {
+      const form = new FormData()
+      form.append('audio', file)
+      const res = await fetch('/api/clipchain/audio', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setAudio({ path: data.audioPath, name: data.name })
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // ---------------------------------------------------------------- concept
 
@@ -128,7 +147,12 @@ export default function PipelineBoardPage() {
       const res = await fetch('/api/clipchain/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), style: styleText, plan }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style: styleText,
+          plan,
+          audioPath: audio?.path,
+        }),
       })
       const data = await res.json()
       if (res.status === 402) {
@@ -284,6 +308,43 @@ export default function PipelineBoardPage() {
                   {s.label}
                 </button>
               ))}
+            </div>
+            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <div className="mb-1 font-mono text-[10px] tracking-[0.25em]" style={{ color: ACCENT }}>
+                SOUNDTRACK
+              </div>
+              <p className="mb-3 text-xs text-zinc-500">
+                Your audio under the final cut — a track, a verse, a voicemail, sound design.
+                Doesn&apos;t have to be music. Stored private, never published.
+              </p>
+              {audio ? (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-zinc-200">{audio.name}</span>
+                  <button
+                    onClick={() => setAudio(null)}
+                    className="text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                  >
+                    remove
+                  </button>
+                </div>
+              ) : (
+                <label className="inline-block cursor-pointer rounded-lg border px-4 py-2 text-xs font-bold transition focus-within:ring-1 focus-within:ring-zinc-400"
+                  style={{ borderColor: '#3f3f46', color: '#a1a1aa' }}
+                >
+                  {uploading ? 'UPLOADING…' : 'ADD AUDIO (OPTIONAL)'}
+                  <input
+                    type="file"
+                    accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg"
+                    className="sr-only"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) uploadAudio(f)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              )}
             </div>
             <div className="mt-4 flex items-center gap-3">
               <span className="text-xs text-zinc-500">Shots:</span>
