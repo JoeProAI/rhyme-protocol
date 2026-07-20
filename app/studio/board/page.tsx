@@ -48,9 +48,19 @@ interface JobView {
   error?: string
 }
 
-const PRICE_PER_SECOND_USD = 0.35
+const FALLBACK_RATE_CENTS = 35
 const FREE_MAX_SHOTS = 4
 const FREE_MAX_SECONDS = 5
+
+interface ClipProduct {
+  id: string
+  label: string
+  shots: number
+  secondsPerShot: 5 | 10 | 15
+  seconds: number
+  priceCents: number
+  filmScale: boolean
+}
 
 const ACCENT = '#C9A227'
 
@@ -82,6 +92,8 @@ export default function PipelineBoardPage() {
   const [uploading, setUploading] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
+  const [rateCents, setRateCents] = useState(FALLBACK_RATE_CENTS)
+  const [products, setProducts] = useState<ClipProduct[]>([])
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -93,6 +105,20 @@ export default function PipelineBoardPage() {
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current) }, [])
+
+  // Live pricing — one server-side rate that tracks Seedance cost down.
+  useEffect(() => {
+    fetch('/api/clipchain/pricing')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.perSecondCents) setRateCents(d.perSecondCents)
+        if (Array.isArray(d?.products)) setProducts(d.products)
+      })
+      .catch(() => {})
+  }, [])
+
+  const flatPrice = (shots: number, seconds: number) =>
+    ((shots * seconds * rateCents) / 100).toFixed(2)
 
   const styleText = preset ? STYLE_PRESETS.find((p) => p.id === preset)?.style : undefined
 
@@ -406,6 +432,43 @@ export default function PipelineBoardPage() {
                 </label>
               )}
             </div>
+            {products.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2 font-mono text-[10px] tracking-[0.25em] text-zinc-500">
+                  FLAT PRICES — TRACK SEEDANCE COST DOWN
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {products.map((p) => {
+                    const active = shotCount === p.shots && secondsPerShot === p.secondsPerShot
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setShotCount(p.shots)
+                          setSecondsPerShot(p.secondsPerShot)
+                        }}
+                        disabled={drafting}
+                        aria-pressed={active}
+                        className="rounded-lg border px-4 py-2 text-left text-xs transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-50"
+                        style={
+                          active
+                            ? { borderColor: ACCENT, background: 'rgba(201,162,39,0.08)' }
+                            : { borderColor: '#27272a' }
+                        }
+                      >
+                        <div className="font-bold" style={{ color: active ? ACCENT : '#e4e4e7' }}>
+                          {p.label} — ${(p.priceCents / 100).toFixed(2)} flat
+                        </div>
+                        <div className="mt-0.5 font-mono text-[10px] text-zinc-500">
+                          {p.shots} shots × {p.secondsPerShot}s = {p.seconds}s
+                          {p.filmScale ? ' · card required' : ' · free tier eligible'}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <span className="text-xs text-zinc-500">Shots:</span>
               {[2, 3, 4, 8, 12].map((n) => (
@@ -550,7 +613,7 @@ export default function PipelineBoardPage() {
                 </button>
                 <div className="text-center font-mono text-[10px] text-zinc-500">
                   {plan.shots.length} shots × {secondsPerShot}s · card on file: $
-                  {(plan.shots.length * secondsPerShot * PRICE_PER_SECOND_USD).toFixed(2)} on delivery
+                  {flatPrice(plan.shots.length, secondsPerShot)} flat, on delivery
                 </div>
                 <button
                   onClick={() => draftStoryboard(true)}
@@ -770,7 +833,7 @@ export default function PipelineBoardPage() {
                   className="rounded-lg px-4 py-2 text-xs font-bold text-black focus-visible:ring-2 focus-visible:ring-zinc-300"
                   style={{ background: ACCENT }}
                 >
-                  ADD CARD → ${PRICE_PER_SECOND_USD.toFixed(2)}/SECOND, PAY ON DELIVERY
+                  ADD CARD → ${(rateCents / 100).toFixed(2)}/SECOND, PAY ON DELIVERY
                 </a>
                 <button
                   onClick={() => setGateMessage('')}

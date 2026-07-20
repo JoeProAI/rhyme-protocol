@@ -9,16 +9,11 @@
 
 import Stripe from 'stripe'
 import { redisGet } from '@/lib/redis'
+import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null
-
-// User price per shot-second at 720p, in cents. 35¢/s → a 5s shot is $1.75,
-// a film-scale 15s shot is $5.25. Override with CLIPCHAIN_PRICE_PER_SECOND_CENTS.
-export const PRICE_PER_SECOND_CENTS = Number(
-  process.env.CLIPCHAIN_PRICE_PER_SECOND_CENTS || '35'
-)
 
 export interface ChargeResult {
   charged: boolean
