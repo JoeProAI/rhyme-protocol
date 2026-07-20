@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import { checkUsage, trackUsage, generateSessionId } from '@/lib/usage-system'
+import { checkUsage, trackUsage, generateSessionId, getPaymentInfo } from '@/lib/usage-system'
 import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/clipchain/engine'
 
 export const runtime = 'nodejs'
@@ -21,7 +21,7 @@ const PlanSchema = z.object({
       })
     )
     .min(2)
-    .max(4),
+    .max(25),
 })
 
 const BodySchema = z.object({
@@ -32,11 +32,17 @@ const BodySchema = z.object({
   plan: PlanSchema.optional(),
   // From /api/clipchain/audio — the soundtrack laid under the final cut.
   audioPath: z.string().max(300).optional(),
+  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
 })
 
 const SHOTS = 3
 const SECONDS_PER_SHOT = 5
 const RESOLUTION = '720p'
+
+// Free tier stays small. Anything bigger — more shots or longer shots — is
+// film scale: card on file required, billed per shot-second on delivery.
+const FREE_MAX_SHOTS = 4
+const FREE_MAX_SECONDS = 5
 
 /**
  * POST /api/clipchain/start
@@ -51,7 +57,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style, plan: editedPlan, audioPath } = parsed.data
+    const { prompt, style, plan: editedPlan, audioPath, secondsPerShot = SECONDS_PER_SHOT } = parsed.data
 
     const cookieStore = cookies()
     let sessionId = cookieStore.get('anon_session')?.value
@@ -61,6 +67,23 @@ export async function POST(req: NextRequest) {
     // An upload may only be attached by the session that made it.
     if (audioPath && !audioPath.startsWith(`clipchain/uploads/${sessionId}/`)) {
       return NextResponse.json({ error: 'Audio not found for this session' }, { status: 403 })
+    }
+
+    const shotCount = editedPlan?.shots.length ?? SHOTS
+    const filmScale = shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS
+    if (filmScale) {
+      const payment = await getPaymentInfo(sessionId)
+      if (!payment.has_payment) {
+        return NextResponse.json(
+          {
+            error: 'limit',
+            message: `Film scale (${shotCount} shots × ${secondsPerShot}s) needs a card on file — billed per delivered clip, never for failed runs.`,
+            upgrade_url: '/add-card',
+            shareType: 'clip_generations',
+          },
+          { status: 402 }
+        )
+      }
     }
 
     // The paygate: 1 free clip/day, share-to-X earns more, card = unlimited.
@@ -90,7 +113,7 @@ export async function POST(req: NextRequest) {
       plan,
       shots: [],
       current: 0,
-      secondsPerShot: SECONDS_PER_SHOT,
+      secondsPerShot,
       resolution: RESOLUTION,
       audioPath,
       totalCost: 0,

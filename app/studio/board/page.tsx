@@ -48,7 +48,9 @@ interface JobView {
   error?: string
 }
 
-const PRICE_PER_SHOT_USD = 1.75
+const PRICE_PER_SECOND_USD = 0.35
+const FREE_MAX_SHOTS = 4
+const FREE_MAX_SECONDS = 5
 
 const ACCENT = '#C9A227'
 
@@ -75,8 +77,11 @@ export default function PipelineBoardPage() {
   const [prompt, setPrompt] = useState('')
   const [preset, setPreset] = useState<string | null>(null)
   const [shotCount, setShotCount] = useState(3)
+  const [secondsPerShot, setSecondsPerShot] = useState<5 | 10 | 15>(5)
   const [audio, setAudio] = useState<{ path: string; name: string } | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState('')
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -118,7 +123,12 @@ export default function PipelineBoardPage() {
       const res = await fetch('/api/clipchain/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), style: styleText, shots: shotCount }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style: styleText,
+          shots: Math.min(shotCount, 12),
+          secondsPerShot,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Storyboarding failed')
@@ -139,6 +149,55 @@ export default function PipelineBoardPage() {
     setPlan({ ...plan, shots })
   }
 
+  // Bring your own board: paste a plan JSON, or a bare array of shots
+  // ({ name?, prompt, camera? } — film-workflow boards map straight in).
+  const importBoard = () => {
+    setErrorMessage('')
+    try {
+      const raw = JSON.parse(importText) as unknown
+      const shotsIn = Array.isArray(raw)
+        ? raw
+        : (raw as { shots?: unknown[] }).shots
+      if (!Array.isArray(shotsIn) || shotsIn.length < 2 || shotsIn.length > 25) {
+        throw new Error('Need 2-25 shots')
+      }
+      const shots: PlannedShot[] = shotsIn.map((s, i) => {
+        const o = s as Record<string, unknown>
+        const promptText = typeof o.prompt === 'string' ? o.prompt : ''
+        if (promptText.length < 20) throw new Error(`Shot ${i + 1} has no usable prompt`)
+        return {
+          name:
+            typeof o.name === 'string' && o.name
+              ? o.name
+              : typeof o.location === 'string' && o.location
+                ? o.location
+                : `Shot ${i + 1}`,
+          prompt: promptText,
+          camera: typeof o.camera === 'string' ? o.camera : undefined,
+        }
+      })
+      const base = !Array.isArray(raw) ? (raw as Partial<ClipPlan>) : {}
+      setPlan({
+        title: typeof base.title === 'string' && base.title ? base.title : 'Imported board',
+        art_direction: typeof base.art_direction === 'string' ? base.art_direction : undefined,
+        signature: typeof base.signature === 'string' ? base.signature : undefined,
+        style_bible:
+          typeof base.style_bible === 'string' && base.style_bible.length >= 20
+            ? base.style_bible
+            : 'Every shot obeys the imported board exactly as written; no added style.',
+        shots,
+      })
+      setShotCount(shots.length)
+      setImportOpen(false)
+      setImportText('')
+      setStage('board')
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? `Import failed: ${err.message}` : 'Import failed: invalid JSON'
+      )
+    }
+  }
+
   const lockAndGenerate = async () => {
     if (!plan || locking) return
     setLocking(true)
@@ -148,10 +207,11 @@ export default function PipelineBoardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          prompt: prompt.trim() || plan.title,
           style: styleText,
           plan,
           audioPath: audio?.path,
+          secondsPerShot,
         }),
       })
       const data = await res.json()
@@ -346,9 +406,9 @@ export default function PipelineBoardPage() {
                 </label>
               )}
             </div>
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <span className="text-xs text-zinc-500">Shots:</span>
-              {[2, 3, 4].map((n) => (
+              {[2, 3, 4, 8, 12].map((n) => (
                 <button
                   key={n}
                   onClick={() => setShotCount(n)}
@@ -364,7 +424,55 @@ export default function PipelineBoardPage() {
                   {n}
                 </button>
               ))}
-              <span className="text-xs text-zinc-600">× 5s = {shotCount * 5}s clip</span>
+              <span className="text-xs text-zinc-500">Length:</span>
+              {([5, 10, 15] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSecondsPerShot(s)}
+                  disabled={drafting}
+                  aria-pressed={secondsPerShot === s}
+                  className="rounded-md border px-3 py-1.5 font-mono text-xs transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-50"
+                  style={
+                    secondsPerShot === s
+                      ? { borderColor: ACCENT, color: ACCENT }
+                      : { borderColor: '#27272a', color: '#a1a1aa' }
+                  }
+                >
+                  {s}s
+                </button>
+              ))}
+              <span className="text-xs text-zinc-600">
+                = {shotCount * secondsPerShot}s film
+                {(shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS) &&
+                  ' · film scale, card required'}
+              </span>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => setImportOpen(!importOpen)}
+                className="text-xs text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+              >
+                {importOpen ? 'close board import' : 'already have a board? import JSON'}
+              </button>
+              {importOpen && (
+                <div className="mt-3">
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    rows={6}
+                    placeholder='{"title": "...", "style_bible": "...", "shots": [{"name": "...", "prompt": "..."}]} — or a bare array of shots'
+                    className={inputCls}
+                  />
+                  <button
+                    onClick={importBoard}
+                    disabled={!importText.trim()}
+                    className="mt-2 rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-40"
+                    style={{ borderColor: ACCENT, color: ACCENT }}
+                  >
+                    IMPORT → BOARD
+                  </button>
+                </div>
+              )}
             </div>
             <div className="mt-6 flex items-center gap-4">
               <button
@@ -441,7 +549,8 @@ export default function PipelineBoardPage() {
                   {locking ? 'LOCKING…' : 'LOCK & GENERATE'}
                 </button>
                 <div className="text-center font-mono text-[10px] text-zinc-500">
-                  free daily clip · card on file: ${(plan.shots.length * PRICE_PER_SHOT_USD).toFixed(2)} on delivery
+                  {plan.shots.length} shots × {secondsPerShot}s · card on file: $
+                  {(plan.shots.length * secondsPerShot * PRICE_PER_SECOND_USD).toFixed(2)} on delivery
                 </div>
                 <button
                   onClick={() => draftStoryboard(true)}
@@ -466,7 +575,7 @@ export default function PipelineBoardPage() {
                 <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="font-mono text-[10px] tracking-[0.25em] text-zinc-500">
-                      SHOT {String(i + 1).padStart(2, '0')} · 5s
+                      SHOT {String(i + 1).padStart(2, '0')} · {secondsPerShot}s
                     </span>
                     {i > 0 && (
                       <span className="text-[10px] text-zinc-600">
@@ -661,7 +770,7 @@ export default function PipelineBoardPage() {
                   className="rounded-lg px-4 py-2 text-xs font-bold text-black focus-visible:ring-2 focus-visible:ring-zinc-300"
                   style={{ background: ACCENT }}
                 >
-                  ADD CARD → ${PRICE_PER_SHOT_USD.toFixed(2)}/SHOT, PAY ON DELIVERY
+                  ADD CARD → ${PRICE_PER_SECOND_USD.toFixed(2)}/SECOND, PAY ON DELIVERY
                 </a>
                 <button
                   onClick={() => setGateMessage('')}

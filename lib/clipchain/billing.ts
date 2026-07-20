@@ -14,10 +14,10 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null
 
-// User price per 5s/720p shot, in cents. ~$1.75 against a ~$0.60-1.50
-// provider cost. Override with CLIPCHAIN_PRICE_PER_SHOT_CENTS.
-export const PRICE_PER_SHOT_CENTS = Number(
-  process.env.CLIPCHAIN_PRICE_PER_SHOT_CENTS || '175'
+// User price per shot-second at 720p, in cents. 35¢/s → a 5s shot is $1.75,
+// a film-scale 15s shot is $5.25. Override with CLIPCHAIN_PRICE_PER_SECOND_CENTS.
+export const PRICE_PER_SECOND_CENTS = Number(
+  process.env.CLIPCHAIN_PRICE_PER_SECOND_CENTS || '35'
 )
 
 export interface ChargeResult {
@@ -35,7 +35,8 @@ export interface ChargeResult {
 export async function chargeForDeliveredClip(
   sessionId: string,
   jobId: string,
-  shotCount: number
+  shotCount: number,
+  secondsPerShot: number
 ): Promise<ChargeResult> {
   const payment = await redisGet<{ has_payment: boolean; stripe_customer_id?: string }>(
     `payment:${sessionId}`
@@ -47,7 +48,7 @@ export async function chargeForDeliveredClip(
     return { charged: false, error: 'Stripe not configured' }
   }
 
-  const amountCents = PRICE_PER_SHOT_CENTS * shotCount
+  const amountCents = PRICE_PER_SECOND_CENTS * shotCount * secondsPerShot
   try {
     const customerId = payment.stripe_customer_id
     const methods = await stripe.paymentMethods.list({
@@ -68,8 +69,8 @@ export async function chargeForDeliveredClip(
         payment_method: method.id,
         off_session: true,
         confirm: true,
-        description: `ClipChain clip ${jobId} (${shotCount} shots)`,
-        metadata: { jobId, sessionId, shots: String(shotCount) },
+        description: `ClipChain clip ${jobId} (${shotCount} shots x ${secondsPerShot}s)`,
+        metadata: { jobId, sessionId, shots: String(shotCount), secondsPerShot: String(secondsPerShot) },
       },
       { idempotencyKey: `clipchain-${jobId}` }
     )

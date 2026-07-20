@@ -8,10 +8,9 @@ export const maxDuration = 60
 const BodySchema = z.object({
   prompt: z.string().min(8, 'Describe your clip in at least a few words').max(600),
   style: z.string().max(400).optional(),
-  shots: z.number().int().min(2).max(4).optional(),
+  shots: z.number().int().min(2).max(12).optional(),
+  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
 })
-
-const SECONDS_PER_SHOT = 5
 
 /**
  * POST /api/clipchain/plan
@@ -28,9 +27,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style, shots = 3 } = parsed.data
-    const plan = await storyboard(prompt, style, shots, SECONDS_PER_SHOT)
-    return NextResponse.json({ plan, secondsPerShot: SECONDS_PER_SHOT })
+    const { prompt, style, shots = 3, secondsPerShot = 5 } = parsed.data
+    const plan = await storyboard(prompt, style, shots, secondsPerShot)
+    return NextResponse.json({ plan, secondsPerShot })
   } catch (error) {
     console.error('[clipchain] plan failed:', error)
     return NextResponse.json(

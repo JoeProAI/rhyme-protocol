@@ -385,6 +385,14 @@ export async function getUsageData(sessionId: string): Promise<{
 }
 
 /**
+ * Whether this session has a card on file (film-scale gate, billing).
+ */
+export async function getPaymentInfo(sessionId: string): Promise<{ has_payment: boolean; stripe_customer_id?: string }> {
+  const data = await redisGet<{ has_payment: boolean; stripe_customer_id?: string }>(getPaymentKey(sessionId))
+  return data ?? { has_payment: false }
+}
+
+/**
  * Set payment status for a user (called after Stripe checkout)
  */
 export async function setPaymentStatus(sessionId: string, stripeCustomerId: string): Promise<void> {

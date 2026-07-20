@@ -725,7 +725,12 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       // sessions are not. Idempotent at the Stripe layer (key = jobId), so
       // a re-entered tick cannot double-charge.
       if (!job.charged) {
-        const bill = await chargeForDeliveredClip(job.sessionId, job.id, job.shots.length)
+        const bill = await chargeForDeliveredClip(
+          job.sessionId,
+          job.id,
+          job.shots.length,
+          job.secondsPerShot
+        )
         if (bill.charged) {
           job.charged = true
           job.chargedUsd = bill.amountUsd
