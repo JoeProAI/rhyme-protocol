@@ -19,6 +19,7 @@ import { join } from 'path'
 import { promisify } from 'util'
 import { redisGet, redisSet } from '@/lib/redis'
 import { adminStorage } from '@/lib/firebase-admin'
+import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
 
 const execFileAsync = promisify(execFile)
 
@@ -46,6 +47,8 @@ export interface ShotState {
   storagePath?: string
   frameUrl?: string
   cost?: number
+  attempts?: number
+  submittedAt?: number
   done: boolean
 }
 
@@ -64,10 +67,24 @@ export interface ClipJob {
   resolution: string
   videoUrl?: string
   totalCost: number
+  tickErrors?: number
+  wastedCost?: number
+  refunded?: boolean
   error?: string
 }
 
 const JOB_TTL_SECONDS = 60 * 60 * 24 // jobs readable for a day
+
+// Resilience budget: a shot may be resubmitted up to MAX_SHOT_ATTEMPTS times
+// (provider-side failures or hangs), and a tick may hit transient errors up to
+// MAX_TICK_ERRORS times in a row before the job parks as failed. A parked job
+// keeps every completed shot and can be resumed via resumeJob().
+const MAX_SHOT_ATTEMPTS = 3
+const MAX_TICK_ERRORS = 5
+const SHOT_TIMEOUT_MS = 15 * 60 * 1000
+
+/** An error that should park the job immediately instead of burning retries. */
+class PermanentError extends Error {}
 const jobKey = (id: string) => `clipchain:job:${id}`
 const lockKey = (id: string) => `clipchain:lock:${id}`
 
@@ -425,9 +442,47 @@ export async function startJob(job: ClipJob): Promise<void> {
     job.secondsPerShot,
     job.resolution
   )
-  job.shots[0] = { name: job.plan.shots[0].name, fullPrompt, orId, pollUrl, done: false }
+  job.shots[0] = {
+    name: job.plan.shots[0].name,
+    fullPrompt,
+    orId,
+    pollUrl,
+    attempts: 1,
+    submittedAt: Date.now(),
+    done: false,
+  }
   job.message = `Shot 1/${job.plan.shots.length}: generating…`
   await saveJob(job)
+}
+
+/** Resubmit the job's current shot (same prompt, same seed frame). */
+async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> {
+  const idx = job.current
+  const existing = job.shots[idx]
+  const attempts = existing?.attempts ?? 0
+  if (attempts >= MAX_SHOT_ATTEMPTS) {
+    throw new PermanentError(
+      `Shot ${idx + 1} failed after ${attempts} attempts (${reason}). Completed shots are saved — resume to try again.`
+    )
+  }
+  const prevFrame = idx > 0 ? job.shots[idx - 1]?.frameUrl : undefined
+  const fullPrompt = existing?.fullPrompt ?? shotFullPrompt(job, idx)
+  const { orId, pollUrl } = await submitShot(
+    fullPrompt,
+    job.secondsPerShot,
+    job.resolution,
+    prevFrame
+  )
+  job.shots[idx] = {
+    name: job.plan.shots[idx].name,
+    fullPrompt,
+    orId,
+    pollUrl,
+    attempts: attempts + 1,
+    submittedAt: Date.now(),
+    done: false,
+  }
+  job.message = `Shot ${idx + 1}/${job.plan.shots.length}: retrying (attempt ${attempts + 1}/${MAX_SHOT_ATTEMPTS})…`
 }
 
 /**
@@ -445,24 +500,48 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
   try {
     if (job.status === 'generating') {
       const shot = job.shots[job.current]
-      if (!shot?.pollUrl) throw new Error(`shot ${job.current + 1} was never submitted`)
-
-      const st = await checkShot(shot.pollUrl)
-      if (st.status === 'failed') {
-        throw new Error(`Seedance job for shot ${job.current + 1} failed`)
-      }
-      if (st.status !== 'completed') {
-        job.message = `Shot ${job.current + 1}/${job.plan.shots.length}: ${st.status === 'pending' ? 'queued' : 'rendering'}…`
+      if (!shot?.pollUrl) {
+        await resubmitCurrentShot(job, 'never submitted')
+        job.tickErrors = 0
         await saveJob(job)
         return job
       }
 
-      // Shot finished: persist it + cost
+      const st = await checkShot(shot.pollUrl)
+      if (st.status === 'failed') {
+        // Provider-side failure: any billed cost is waste, then bounded resubmit.
+        if (typeof st.usage?.cost === 'number' && st.usage.cost > 0) {
+          job.wastedCost = (job.wastedCost ?? 0) + st.usage.cost
+          await trackSpend(job.sessionId, st.usage.cost).catch(() => {})
+        }
+        await resubmitCurrentShot(job, 'provider reported failure')
+        job.tickErrors = 0
+        await saveJob(job)
+        return job
+      }
+      if (st.status !== 'completed') {
+        // Hung jobs count as failures too — resubmit past the timeout.
+        if (shot.submittedAt && Date.now() - shot.submittedAt > SHOT_TIMEOUT_MS) {
+          await resubmitCurrentShot(job, 'timed out')
+        } else {
+          job.message = `Shot ${job.current + 1}/${job.plan.shots.length}: ${st.status === 'pending' ? 'queued' : 'rendering'}…`
+        }
+        job.tickErrors = 0
+        await saveJob(job)
+        return job
+      }
+
+      // Shot finished: persist cost first (idempotent — a re-entered tick
+      // must not meter the same shot twice).
       const srcUrl = st.unsigned_urls?.[0]
       if (!srcUrl) throw new Error('completed shot had no video url')
-      if (typeof st.usage?.cost === 'number') {
+      if (typeof st.usage?.cost === 'number' && shot.cost === undefined) {
         shot.cost = st.usage.cost
-        job.totalCost += st.usage.cost
+        job.totalCost =
+          (job.wastedCost ?? 0) +
+          job.shots.reduce((sum, s) => sum + (s?.cost ?? 0), 0)
+        await trackSpend(job.sessionId, st.usage.cost).catch(() => {})
+        await saveJob(job)
       }
       const videoBuf = await downloadBuffer(srcUrl, true)
       const shotFile = `shot-${job.current + 1}.mp4`
@@ -505,10 +584,13 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           fullPrompt,
           orId,
           pollUrl,
+          attempts: 1,
+          submittedAt: Date.now(),
           done: false,
         }
         job.current = next
         job.message = `Shot ${next + 1}/${job.plan.shots.length}: generating…`
+        job.tickErrors = 0
         await saveJob(job)
         return job
       }
@@ -524,19 +606,91 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       job.videoUrl = await uploadPublic(job.id, 'final.mp4', finalBuf, 'video/mp4')
       job.status = 'complete'
       job.message = 'Complete'
-      await saveJob(job)
     }
 
+    job.tickErrors = 0
+    await saveJob(job)
     return job
   } catch (err) {
-    job.status = 'failed'
-    job.error = err instanceof Error ? err.message : String(err)
-    job.message = 'Failed'
+    const msg = err instanceof Error ? err.message : String(err)
+    const permanent = err instanceof PermanentError
+    job.tickErrors = permanent ? MAX_TICK_ERRORS : (job.tickErrors ?? 0) + 1
+
+    if (permanent || job.tickErrors >= MAX_TICK_ERRORS) {
+      // Park, don't destroy: completed shots stay in storage and the job
+      // stays resumable for its TTL.
+      job.status = 'failed'
+      job.error = msg
+      const doneCount = job.shots.filter((s) => s?.done).length
+      job.message =
+        doneCount > 0
+          ? `Failed on shot ${job.current + 1} — ${doneCount} finished shot${doneCount === 1 ? '' : 's'} saved. Resume to continue.`
+          : 'Failed before any shot finished.'
+      // Fair billing: nothing delivered → the clip doesn't count against
+      // the user's daily allowance.
+      if (doneCount === 0 && !job.refunded) {
+        job.refunded = true
+        await refundUsage(job.sessionId, 'clip_generations', 1).catch(() => {})
+      }
+    } else {
+      job.message = `Transient hiccup (${job.tickErrors}/${MAX_TICK_ERRORS}) — retrying: ${msg.slice(0, 120)}`
+    }
     await saveJob(job)
     return job
   } finally {
     await redisSet(lock, 0, 1)
   }
+}
+
+/**
+ * Restart a parked (failed) job from its last completed shot. Completed
+ * shots are never regenerated; the current shot is resubmitted with its
+ * original prompt and seed frame. Does NOT re-count the user's allowance.
+ */
+export async function resumeJob(job: ClipJob): Promise<ClipJob> {
+  if (job.status !== 'failed') return job
+
+  job.error = undefined
+  job.tickErrors = 0
+
+  // A zero-delivery failure refunded the allowance; resuming revives the
+  // clip, so it counts again.
+  if (job.refunded) {
+    job.refunded = false
+    await trackUsage(job.sessionId, 'clip_generations', 1).catch(() => {})
+  }
+
+  // If the user resumes past the attempt cap, grant a fresh attempt budget —
+  // resuming is an explicit choice, not a silent retry loop.
+  let i = 0
+  while (i < job.plan.shots.length && job.shots[i]?.done) i++
+
+  if (i >= job.plan.shots.length) {
+    job.status = 'assembling'
+    job.message = 'All shots done — assembling final cut…'
+    await saveJob(job)
+    return job
+  }
+
+  // The seed frame for shot i is the last frame of shot i-1. If the crash
+  // happened between upload and frame extraction, re-derive it from storage.
+  if (i > 0) {
+    const prev = job.shots[i - 1]
+    if (prev && !prev.frameUrl && prev.storagePath) {
+      const [buf] = await adminStorage().bucket().file(prev.storagePath).download()
+      const frameBuf = await extractLastFrame(Buffer.from(buf), job.id, i)
+      prev.frameUrl = await uploadPublic(job.id, `frame-${i}.jpg`, frameBuf, 'image/jpeg')
+    }
+  }
+
+  const existing = job.shots[i]
+  if (existing) existing.attempts = 0
+  job.current = i
+  await resubmitCurrentShot(job, 'resumed by user')
+  job.status = 'generating'
+  job.message = `Resumed — shot ${i + 1}/${job.plan.shots.length}: generating…`
+  await saveJob(job)
+  return job
 }
 
 /** Public projection — everything the UI needs, none of the internals. */
@@ -552,9 +706,11 @@ export function publicJob(job: ClipJob) {
       name: s.name,
       done: job.shots[i]?.done ?? false,
       generating: i === job.current && job.status === 'generating',
+      attempts: job.shots[i]?.attempts,
     })),
     videoUrl: job.videoUrl,
     totalCost: job.totalCost > 0 ? Number(job.totalCost.toFixed(2)) : undefined,
+    canResume: job.status === 'failed',
     error: job.error,
   }
 }

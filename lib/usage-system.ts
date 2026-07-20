@@ -312,6 +312,38 @@ export async function trackUsage(sessionId: string, type: UsageType, quantity: n
 }
 
 /**
+ * Record ACTUAL dollars spent on a generation (reported by the provider),
+ * as opposed to the flat estimates in COSTS. Feeds the same global daily
+ * ceiling and the session's monthly total, so the budget gate reflects
+ * reality instead of guesses.
+ */
+export async function trackSpend(sessionId: string, costUsd: number): Promise<void> {
+  if (!(costUsd > 0)) return
+  const globalSpendKey = getGlobalSpendKey()
+  const currentGlobal = (await redisGet<number>(globalSpendKey)) || 0
+  await redisSet(globalSpendKey, currentGlobal + costUsd, 172800)
+
+  const monthlyKey = getMonthlyKey(sessionId)
+  const monthlyData = await redisGet<{ total_cost: number; breakdown: Record<string, number> }>(monthlyKey) || {
+    total_cost: 0,
+    breakdown: {},
+  }
+  monthlyData.total_cost += costUsd
+  await redisSet(monthlyKey, monthlyData)
+}
+
+/**
+ * Give back a counted usage after a permanent failure that delivered nothing.
+ * Fair-billing rule: a job that produced zero shots must not consume the
+ * user's daily allowance.
+ */
+export async function refundUsage(sessionId: string, type: UsageType, quantity: number = 1): Promise<void> {
+  const dailyKey = getDailyKey(sessionId, type)
+  const used = (await redisGet<number>(dailyKey)) || 0
+  await redisSet(dailyKey, Math.max(0, used - quantity), 172800)
+}
+
+/**
  * Get full usage data for dashboard
  */
 export async function getUsageData(sessionId: string): Promise<{
