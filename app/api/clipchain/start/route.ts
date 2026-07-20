@@ -7,9 +7,29 @@ import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/cl
 export const runtime = 'nodejs'
 export const maxDuration = 60 // storyboard + first shot submit
 
+const PlanSchema = z.object({
+  title: z.string().min(1).max(120),
+  art_direction: z.string().max(300).optional(),
+  signature: z.string().max(400).optional(),
+  style_bible: z.string().min(20, 'Style bible is too thin to hold shots together').max(2000),
+  shots: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(80),
+        prompt: z.string().min(20, 'Each shot prompt needs real direction').max(1200),
+        camera: z.string().max(300).optional(),
+      })
+    )
+    .min(2)
+    .max(4),
+})
+
 const BodySchema = z.object({
   prompt: z.string().min(8, 'Describe your clip in at least a few words').max(600),
   style: z.string().max(400).optional(),
+  // Board flow: a user-edited storyboard skips the LLM and generates exactly
+  // what's on the cards.
+  plan: PlanSchema.optional(),
 })
 
 const SHOTS = 3
@@ -29,7 +49,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style } = parsed.data
+    const { prompt, style, plan: editedPlan } = parsed.data
 
     const cookieStore = cookies()
     let sessionId = cookieStore.get('anon_session')?.value
@@ -50,7 +70,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const plan = await storyboard(prompt, style, SHOTS, SECONDS_PER_SHOT)
+    const plan = editedPlan ?? (await storyboard(prompt, style, SHOTS, SECONDS_PER_SHOT))
 
     const job: ClipJob = {
       id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,

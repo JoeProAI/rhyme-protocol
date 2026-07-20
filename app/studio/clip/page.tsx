@@ -184,7 +184,10 @@ export default function ClipStudioPage() {
             {busy ? 'WORKING…' : 'GENERATE CLIP'}
           </button>
           <span className="text-xs text-zinc-500">
-            1 free clip a day · share to X for more · ~90s to render
+            1 free clip a day · share to X for more · ~90s to render ·{' '}
+            <a href="/studio/board" className="underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300">
+              want to direct every shot? open the board
+            </a>
           </span>
         </div>
 
