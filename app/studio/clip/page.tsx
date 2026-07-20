@@ -217,7 +217,7 @@ export default function ClipStudioPage() {
                   className="rounded-lg px-4 py-2 text-xs font-bold text-black"
                   style={{ background: ACCENT }}
                 >
-                  ADD CARD → UNLIMITED
+                  ADD CARD → $1.75/SHOT, PAY ON DELIVERY
                 </a>
               </div>
             </motion.div>

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { returnUrl } = await req.json()
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://joepro.ai'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://rhymeprotocol.com'
 
     // Create Stripe Checkout session for setup (card on file, no immediate charge)
     const checkoutSession = await stripe.checkout.sessions.create({

@@ -20,6 +20,7 @@ import { promisify } from 'util'
 import { redisGet, redisSet } from '@/lib/redis'
 import { adminStorage } from '@/lib/firebase-admin'
 import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
+import { chargeForDeliveredClip } from '@/lib/clipchain/billing'
 
 const execFileAsync = promisify(execFile)
 
@@ -70,6 +71,9 @@ export interface ClipJob {
   tickErrors?: number
   wastedCost?: number
   refunded?: boolean
+  charged?: boolean
+  chargedUsd?: number
+  billingError?: string
   error?: string
 }
 
@@ -687,6 +691,22 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       job.videoUrl = await uploadPublic(job.id, 'final.mp4', finalBuf, 'video/mp4')
       job.status = 'complete'
       job.message = 'Complete'
+      await saveJob(job) // the clip is delivered no matter what billing does
+
+      // Pay-per-delivery: card-on-file sessions are charged now, free-tier
+      // sessions are not. Idempotent at the Stripe layer (key = jobId), so
+      // a re-entered tick cannot double-charge.
+      if (!job.charged) {
+        const bill = await chargeForDeliveredClip(job.sessionId, job.id, job.shots.length)
+        if (bill.charged) {
+          job.charged = true
+          job.chargedUsd = bill.amountUsd
+        } else if (bill.error) {
+          // Deliver anyway — a billing hiccup is our problem, not the artist's.
+          job.billingError = bill.error
+          console.warn(`[clipchain] billing failed for ${job.id}:`, bill.error)
+        }
+      }
     }
 
     job.tickErrors = 0
@@ -791,6 +811,7 @@ export function publicJob(job: ClipJob) {
     })),
     videoUrl: job.videoUrl,
     totalCost: job.totalCost > 0 ? Number(job.totalCost.toFixed(2)) : undefined,
+    billedUsd: job.chargedUsd,
     canResume: job.status === 'failed',
     error: job.error,
   }

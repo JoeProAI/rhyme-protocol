@@ -43,9 +43,12 @@ interface JobView {
   shots: ShotStatus[]
   videoUrl?: string
   totalCost?: number
+  billedUsd?: number
   canResume?: boolean
   error?: string
 }
+
+const PRICE_PER_SHOT_USD = 1.75
 
 const ACCENT = '#C9A227'
 
@@ -376,6 +379,9 @@ export default function PipelineBoardPage() {
                 >
                   {locking ? 'LOCKING…' : 'LOCK & GENERATE'}
                 </button>
+                <div className="text-center font-mono text-[10px] text-zinc-500">
+                  free daily clip · card on file: ${(plan.shots.length * PRICE_PER_SHOT_USD).toFixed(2)} on delivery
+                </div>
                 <button
                   onClick={() => draftStoryboard(true)}
                   disabled={drafting}
@@ -558,9 +564,9 @@ export default function PipelineBoardPage() {
                 >
                   {shared ? 'BONUS UNLOCKED' : 'SHARE TO X → +2 CLIPS'}
                 </button>
-                {typeof job.totalCost === 'number' && (
+                {typeof job.billedUsd === 'number' && (
                   <span className="font-mono text-[10px] text-zinc-600">
-                    total spend: ${job.totalCost.toFixed(2)}
+                    billed on delivery: ${job.billedUsd.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -594,7 +600,7 @@ export default function PipelineBoardPage() {
                   className="rounded-lg px-4 py-2 text-xs font-bold text-black focus-visible:ring-2 focus-visible:ring-zinc-300"
                   style={{ background: ACCENT }}
                 >
-                  ADD CARD → UNLIMITED
+                  ADD CARD → ${PRICE_PER_SHOT_USD.toFixed(2)}/SHOT, PAY ON DELIVERY
                 </a>
                 <button
                   onClick={() => setGateMessage('')}
