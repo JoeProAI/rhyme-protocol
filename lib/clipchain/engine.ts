@@ -160,16 +160,18 @@ export async function storyboard(
 "${prompt}"
 ${style ? `Client's style direction (honor it, then sharpen it): ${style}` : ''}
 
-FIRST, commit to ONE radical art direction — a named, specific visual world (e.g. "1982 anamorphic Kodak 5247 sci-fi noir", "hand-processed 16mm skate video", "Gregory Crewdson suburban tableau", "CRT-scanline broadcast horror"). Not a mood — a reproducible recipe: film stock/sensor character, exact lens focal lengths, lighting sources that exist in the world, a 3-color palette with named roles.
+THE MEDIUM ANCHOR LAW (non-negotiable): commit to ONE named real physical medium with a massive real photographic or art tradition — a specific stock, craft, era, or technique (e.g. "1982 anamorphic Kodak 5247 sci-fi noir", "hand-processed 16mm skate video", "Gregory Crewdson suburban tableau", "1948 three-strip Technicolor soundstage", "O. Winston Link flash-lit night documentary", "Pathé stencil-tinted nitrate"). The anchor is what makes frames read as photographed instead of generated. Not a mood — a reproducible recipe: film stock/sensor character, exact lens focal lengths, lighting sources that exist in the world, a 3-color palette with named roles for each color.
 
 SECOND, invent a SIGNATURE — one unforgettable visual motif that appears in every shot and EVOLVES (an object, a light behavior, a compositional rule, a recurring gesture). This is the thing viewers remember.
 
-BANNED (instant rejection — these read as AI-generated filler):
+THE AVERAGED AI AESTHETIC IS BANNED. Your client is a serious artist; treat them like the da Vincis and Banksys of their generation, not a content farm. Instant rejection for:
+- cyberpunk-by-default: neon-drenched streets, purple-to-blue gradients, holographic UI, glowing circuitry — UNLESS the client's own words ask for it, and even then it must be anchored in a named real tradition, not "cyberpunk vibes"
 - "epic cinematic" as a descriptor; generic drone/orbit establishing shots; slow-motion for its own sake
 - lens flares + floating dust particles + volumetric god-rays as default atmosphere
-- teal-and-orange or purple-neon-on-black unless the concept demands it AND the palette is specified precisely
+- teal-and-orange grading; "8k", "trending", "hyper-detailed" filler vocabulary
 - subjects staring into the distance while camera dollies in; "hooded figure"; "glowing eyes"
 - abstract poetry in prompts ("a dance of light and shadow") — every sentence must be filmable
+The test: could a working cinematographer in the anchor's era have lit and staged this frame? If not, cut it.
 
 Rules:
 - Every shot obeys the STYLE BIBLE paragraph (palette, stock, lenses, lighting grammar, world, signature).
@@ -195,7 +197,86 @@ Exactly ${shots} shots.`,
     throw new Error('storyboard returned no shots')
   }
   plan.shots = plan.shots.slice(0, shots)
-  return plan
+  return enforceAntiTrope(plan, prompt, style)
+}
+
+// ------------------------------------------------- anti-trope enforcement
+
+// The averaged AI aesthetic, detectable as vocabulary. Case-insensitive.
+const TROPE_PATTERNS: [RegExp, string][] = [
+  [/\bcyber\s?punk\b/i, 'cyberpunk-by-default'],
+  [/\bneon[\s-]?(lit|soaked|drenched|glow\w*|sign\w*)?\b/i, 'neon-as-atmosphere'],
+  [/\bholograph\w+/i, 'holographic UI'],
+  [/\bglowing\s+(eyes|circuit\w*|rune\w*|particle\w*|energy)\b/i, 'glowing filler'],
+  [/\bvolumetric\b/i, 'volumetric god-rays'],
+  [/\bepic\s+cinematic\b/i, 'epic-cinematic filler'],
+  [/\b(8k|hyper[\s-]?detailed|trending\s+on)\b/i, 'resolution filler vocabulary'],
+  [/\bhooded\s+figure\b/i, 'hooded figure'],
+  [/\bteal[\s-]?(and|&)[\s-]?orange\b/i, 'teal-and-orange grade'],
+  [/\bpurple\b[^.]{0,40}\bblue\b|\bblue\b[^.]{0,40}\bpurple\b/i, 'purple-to-blue gradient'],
+]
+
+/** Trope labels present in the plan that the client's own words did not ask for. */
+function unexcusedTropes(plan: ClipPlan, clientAsked: string): string[] {
+  const corpus = [
+    plan.art_direction ?? '',
+    plan.style_bible,
+    ...plan.shots.map((s) => `${s.prompt} ${s.camera ?? ''}`),
+  ].join('\n')
+  const hits: string[] = []
+  for (const [re, label] of TROPE_PATTERNS) {
+    if (re.test(corpus) && !re.test(clientAsked)) hits.push(label)
+  }
+  return hits
+}
+
+/**
+ * If the drafted plan leaks the averaged AI aesthetic the CLIENT didn't ask
+ * for, run one bounded repair pass that re-anchors it in a real tradition.
+ * Clean plans (the common case) cost nothing extra. Repair failures fall
+ * back to the original draft — the artist can still edit it on the board.
+ */
+async function enforceAntiTrope(
+  plan: ClipPlan,
+  prompt: string,
+  style: string | undefined
+): Promise<ClipPlan> {
+  const clientAsked = `${prompt} ${style ?? ''}`
+  const violations = unexcusedTropes(plan, clientAsked)
+  if (violations.length === 0) return plan
+
+  try {
+    const text = await orChat(
+      [
+        {
+          role: 'user',
+          content: `You are the art-direction enforcer for serious artists. This storyboard leaked the averaged AI aesthetic — the client did NOT ask for any of it. Violations detected: ${violations.join('; ')}.
+
+REWRITE the storyboard to purge every violation. Re-anchor the whole world in ONE named real physical medium with a real photographic or art tradition (a specific stock, craft, era, or technique a working cinematographer could reproduce). Keep the client's concept, the shot structure, the shot count, and the signature motif's ROLE — change only the visual world and the vocabulary. Every sentence must be filmable in the anchor's era.
+
+CLIENT CONCEPT: "${prompt}"
+${style ? `CLIENT STYLE DIRECTION: ${style}` : ''}
+
+CURRENT STORYBOARD (JSON):
+${JSON.stringify(plan, null, 1)}
+
+Output ONLY the corrected JSON with the same schema and exactly ${plan.shots.length} shots.`,
+        },
+      ],
+      STORYBOARD_MODEL
+    )
+    const repaired = parseJsonLoose<ClipPlan>(text)
+    if (!Array.isArray(repaired.shots) || repaired.shots.length !== plan.shots.length) {
+      return plan
+    }
+    // Only accept the repair if it actually cleaned the leak.
+    return unexcusedTropes(repaired, clientAsked).length < violations.length
+      ? repaired
+      : plan
+  } catch (err) {
+    console.warn('[clipchain] anti-trope repair skipped:', err)
+    return plan
+  }
 }
 
 // ------------------------------------------------------------- analyzers
