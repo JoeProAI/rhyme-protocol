@@ -18,6 +18,7 @@ const PlanSchema = z.object({
         name: z.string().min(1).max(80),
         prompt: z.string().min(20, 'Each shot prompt needs real direction').max(1200),
         camera: z.string().max(300).optional(),
+        window: z.string().max(120).optional(),
       })
     )
     .min(2)

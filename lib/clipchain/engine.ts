@@ -32,6 +32,22 @@ export interface PlannedShot {
   name: string
   prompt: string
   camera?: string
+  // Timed song window this shot covers, e.g. "0:45–1:00 · CHORUS 1".
+  window?: string
+}
+
+export interface TrackSection {
+  label: string
+  start: number
+  end: number
+  lyrics?: string
+  energy?: string
+  imagery?: string
+}
+
+export interface TrackMap {
+  durationSec: number
+  sections: TrackSection[]
 }
 
 export interface ClipPlan {
@@ -290,6 +306,136 @@ Output ONLY the corrected JSON with the same schema and exactly ${plan.shots.len
   }
 }
 
+// -------------------------------------------------- track-driven boarding
+
+const AUDIO_MODEL = process.env.CLIPCHAIN_AUDIO_MODEL ?? 'google/gemini-2.5-flash'
+
+const ANALYZE_TRACK_PROMPT = `You are a music supervisor mapping a track for a music film. Listen to the ENTIRE track. Output ONLY JSON:
+{
+  "durationSec": <number, total length in seconds>,
+  "sections": [
+    {
+      "label": "INTRO | VERSE 1 | PRE-CHORUS | CHORUS 1 | VERSE 2 | BRIDGE | DROP | OUTRO ...",
+      "start": <seconds>,
+      "end": <seconds>,
+      "lyrics": "the words actually heard in this section, verbatim as best you can; empty string if instrumental",
+      "energy": "one word: sparse | building | driving | explosive | falling | still",
+      "imagery": "concrete visual cues THIS sound suggests — instruments, texture, pace, mood as filmable images, one sentence"
+    }
+  ]
+}
+Sections must tile the whole track in order (no gaps, no overlaps). Be precise about where choruses repeat — repeated choruses should share the same base label with a number.`
+
+/**
+ * Listen to an uploaded track and return its timed structure map.
+ * This is what makes the film come FROM the song instead of sitting under it.
+ */
+export async function analyzeTrack(audioPath: string): Promise<TrackMap> {
+  const [buf] = await adminStorage().bucket().file(audioPath).download()
+  const ext = (audioPath.split('.').pop() ?? 'mp3').toLowerCase()
+  const format = ext === 'm4a' || ext === 'aac' ? 'mp4' : ext
+  const text = await orChat(
+    [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: ANALYZE_TRACK_PROMPT },
+          {
+            type: 'input_audio',
+            input_audio: { data: Buffer.from(buf).toString('base64'), format },
+          },
+        ],
+      },
+    ],
+    AUDIO_MODEL
+  )
+  const map = parseJsonLoose<TrackMap>(text)
+  if (!map.durationSec || !Array.isArray(map.sections) || map.sections.length === 0) {
+    throw new Error('track analysis returned no structure')
+  }
+  map.sections = map.sections.slice(0, 40)
+  return map
+}
+
+const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+
+/** Which sections overlap a [start, end) window, with their lyrics. */
+function windowBrief(track: TrackMap, start: number, end: number): string {
+  const hits = track.sections.filter((s) => s.start < end && s.end > start)
+  if (hits.length === 0) return 'instrumental'
+  return hits
+    .map((s) => `${s.label} (${s.energy ?? ''}): ${s.lyrics?.trim() || '[instrumental]'}${s.imagery ? ` | sound suggests: ${s.imagery}` : ''}`)
+    .join(' / ')
+}
+
+/**
+ * Storyboard FROM the track: one shot per timed window, each reflecting its
+ * window's lyrics and energy. The shot count comes from the song's length,
+ * not a dial — the film is the shape of the song.
+ */
+export async function storyboardFromTrack(
+  prompt: string,
+  style: string | undefined,
+  track: TrackMap,
+  secondsPerShot: number
+): Promise<ClipPlan> {
+  const shots = Math.max(2, Math.min(25, Math.round(track.durationSec / secondsPerShot)))
+  const windows = Array.from({ length: shots }, (_, i) => {
+    const start = i * secondsPerShot
+    const end = Math.min((i + 1) * secondsPerShot, track.durationSec)
+    return {
+      i: i + 1,
+      window: `${fmtTime(start)}–${fmtTime(end)}`,
+      brief: windowBrief(track, start, end),
+    }
+  })
+
+  const text = await orChat(
+    [
+      {
+        role: 'user',
+        content: `You are a music-video director designing the definitive film FOR this exact song — the song is the score, the script, and the clock. Concept from the artist:
+
+"${prompt}"
+${style ? `Artist's style direction (honor it, then sharpen it): ${style}` : ''}
+
+THE SONG, mapped (total ${fmtTime(track.durationSec)}):
+${JSON.stringify(track.sections, null, 1)}
+
+THE ${shots} TIMED WINDOWS — one shot each, ${secondsPerShot}s per shot, in order:
+${windows.map((w) => `SHOT ${w.i} [${w.window}]: ${w.brief}`).join('\n')}
+
+THE MEDIUM ANCHOR LAW (non-negotiable): commit to ONE named real physical medium with a massive real photographic or art tradition — a specific stock, craft, era, or technique. Not a mood — a reproducible recipe: film stock/sensor character, exact lens focal lengths, lighting sources that exist in the world, a 3-color palette with named roles. The averaged AI aesthetic is BANNED (cyberpunk-by-default, neon atmosphere, purple-to-blue gradients, "epic cinematic" filler) unless the artist's own words asked for it. The test: could a working cinematographer in the anchor's era have lit and staged this frame?
+
+SECOND, invent a SIGNATURE — one motif that appears in every shot and EVOLVES with the song's energy arc.
+
+RULES OF FUSION:
+- Each shot serves ITS window: verses breathe, pre-choruses build, choruses land the film's biggest recurring image. Repeated choruses must RHYME visually — same location or motif, escalated.
+- Lyrics are subtext, not subtitles: never render words on screen; translate what the words mean into what the camera sees.
+- Shots flow: each opens on the previous shot's closing frame (the generator is seeded with that exact frame). Write the handoff into the prompts.
+- Each shot prompt: 2-4 sentences of concrete film grammar — subject + action, shot size, lens mm, camera move with motivation, light source, what the SIGNATURE does.
+
+Output ONLY JSON:
+{
+  "title": "...",
+  "art_direction": "the named direction in one line",
+  "signature": "the recurring motif and how it evolves with the song",
+  "style_bible": "one paragraph, reused verbatim in every generation",
+  "shots": [ { "name": "...", "prompt": "...", "camera": "...", "window": "M:SS–M:SS · SECTION LABEL" } ]
+}
+Exactly ${shots} shots, in window order.`,
+      },
+    ],
+    STORYBOARD_MODEL
+  )
+  const plan = parseJsonLoose<ClipPlan>(text)
+  if (!Array.isArray(plan.shots) || plan.shots.length === 0) {
+    throw new Error('track storyboard returned no shots')
+  }
+  plan.shots = plan.shots.slice(0, shots)
+  return enforceAntiTrope(plan, prompt, style)
+}
+
 // ------------------------------------------------------------- analyzers
 
 const OMNI_MODEL = process.env.CLIPCHAIN_OMNI ?? 'openai/gpt-4o'
@@ -543,6 +689,7 @@ function shotFullPrompt(job: ClipJob, index: number, continuity?: string): strin
   const shot = job.plan.shots[index]
   return [
     shot.prompt,
+    shot.window ? `SONG WINDOW (this shot's beat in the track): ${shot.window}` : '',
     `Camera: ${shot.camera ?? 'as specified in the style bible'}`,
     job.plan.signature ? `SIGNATURE MOTIF (must appear): ${job.plan.signature}` : '',
     `STYLE BIBLE: ${job.plan.style_bible}`,
