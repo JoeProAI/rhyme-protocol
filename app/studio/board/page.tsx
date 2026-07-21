@@ -16,6 +16,21 @@ interface PlannedShot {
   name: string
   prompt: string
   camera?: string
+  window?: string
+}
+
+interface TrackSection {
+  label: string
+  start: number
+  end: number
+  lyrics?: string
+  energy?: string
+  imagery?: string
+}
+
+interface TrackMap {
+  durationSec: number
+  sections: TrackSection[]
 }
 
 interface ClipPlan {
@@ -89,6 +104,8 @@ export default function PipelineBoardPage() {
   const [shotCount, setShotCount] = useState(3)
   const [secondsPerShot, setSecondsPerShot] = useState<5 | 10 | 15>(5)
   const [audio, setAudio] = useState<{ path: string; name: string } | null>(null)
+  const [track, setTrack] = useState<TrackMap | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
   const [email, setEmail] = useState('')
   const [uploading, setUploading] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -126,6 +143,7 @@ export default function PipelineBoardPage() {
   const uploadAudio = async (file: File) => {
     setUploading(true)
     setErrorMessage('')
+    setTrack(null)
     try {
       const form = new FormData()
       form.append('audio', file)
@@ -137,6 +155,31 @@ export default function PipelineBoardPage() {
       setErrorMessage(err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // Map the song's structure so the storyboard is drafted FROM it.
+  const analyzeAudio = async () => {
+    if (!audio || analyzing) return
+    setAnalyzing(true)
+    setErrorMessage('')
+    try {
+      const res = await fetch('/api/clipchain/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioPath: audio.path }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      const t: TrackMap = data.track
+      setTrack(t)
+      // The film takes the shape of the song: 15s shots across its length.
+      setSecondsPerShot(15)
+      setShotCount(Math.max(2, Math.min(25, Math.round(t.durationSec / 15))))
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Analysis failed')
+    } finally {
+      setAnalyzing(false)
     }
   }
 
@@ -155,6 +198,7 @@ export default function PipelineBoardPage() {
           style: styleText,
           shots: Math.min(shotCount, 12),
           secondsPerShot,
+          track: track ?? undefined,
         }),
       })
       const data = await res.json()
@@ -406,14 +450,40 @@ export default function PipelineBoardPage() {
                 Doesn&apos;t have to be music. Stored private, never published.
               </p>
               {audio ? (
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-zinc-200">{audio.name}</span>
-                  <button
-                    onClick={() => setAudio(null)}
-                    className="text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
-                  >
-                    remove
-                  </button>
+                <div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-zinc-200">{audio.name}</span>
+                    <button
+                      onClick={() => {
+                        setAudio(null)
+                        setTrack(null)
+                      }}
+                      className="text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                    >
+                      remove
+                    </button>
+                  </div>
+                  {track ? (
+                    <div className="mt-3 rounded-md border border-zinc-800 p-3">
+                      <div className="font-mono text-[10px]" style={{ color: ACCENT }}>
+                        TRACK MAPPED — the film will follow the song
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-400">
+                        {Math.floor(track.durationSec / 60)}:{String(Math.floor(track.durationSec % 60)).padStart(2, '0')} ·{' '}
+                        {track.sections.length} sections ·{' '}
+                        {track.sections.map((s) => s.label).join(' → ')}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={analyzeAudio}
+                      disabled={analyzing}
+                      className="mt-3 rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-50"
+                      style={{ borderColor: ACCENT, color: ACCENT }}
+                    >
+                      {analyzing ? 'LISTENING…' : 'MAP THE TRACK — FREE'}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <label className="inline-block cursor-pointer rounded-lg border px-4 py-2 text-xs font-bold transition focus-within:ring-1 focus-within:ring-zinc-400"
@@ -546,7 +616,11 @@ export default function PipelineBoardPage() {
                 className="rounded-lg px-6 py-3 text-sm font-bold text-black transition focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:opacity-40"
                 style={{ background: ACCENT }}
               >
-                {drafting ? 'DRAFTING…' : 'DRAFT STORYBOARD — FREE'}
+                {drafting
+                  ? 'DRAFTING…'
+                  : track
+                    ? 'DRAFT FROM THE SONG — FREE'
+                    : 'DRAFT STORYBOARD — FREE'}
               </button>
               <span className="text-xs text-zinc-500">nothing is generated yet</span>
             </div>
@@ -665,6 +739,11 @@ export default function PipelineBoardPage() {
                   <div className="mb-3 flex items-center justify-between">
                     <span className="font-mono text-[10px] tracking-[0.25em] text-zinc-500">
                       SHOT {String(i + 1).padStart(2, '0')} · {secondsPerShot}s
+                      {s.window && (
+                        <span className="ml-2 tracking-normal" style={{ color: ACCENT }}>
+                          {s.window}
+                        </span>
+                      )}
                     </span>
                     {i > 0 && (
                       <span className="text-[10px] text-zinc-600">
