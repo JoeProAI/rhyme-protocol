@@ -14,7 +14,7 @@
 
 import { execFile } from 'child_process'
 import { randomUUID } from 'crypto'
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { access, mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
@@ -609,8 +609,20 @@ async function downloadBuffer(url: string, auth = false): Promise<Buffer> {
 async function ffmpegPath(): Promise<string> {
   const mod = await import('ffmpeg-static')
   const p = (mod.default ?? mod) as unknown as string
-  if (!p) throw new Error('ffmpeg-static binary not found')
-  return p
+  if (p) {
+    try {
+      await access(p)
+      return p
+    } catch {
+      // fall through — bundler rewrote the path to a location without the binary
+    }
+  }
+  // Traced location in the deployed function (/var/task/node_modules/...).
+  const fallback = join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg')
+  await access(fallback).catch(() => {
+    throw new Error('ffmpeg binary not found in bundle')
+  })
+  return fallback
 }
 
 async function extractLastFrame(videoBuf: Buffer, jobId: string, shotIndex: number): Promise<Buffer> {

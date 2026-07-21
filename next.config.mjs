@@ -10,6 +10,9 @@ const nextConfig = {
     outputFileTracingIncludes: {
       '/api/clipchain/**': ['./node_modules/ffmpeg-static/**'],
     },
+    // Keep ffmpeg-static un-bundled: webpack rewrites its __dirname-based
+    // binary path to the chunks dir, which doesn't contain the binary.
+    serverComponentsExternalPackages: ['ffmpeg-static'],
   },
   
   // Redirects
