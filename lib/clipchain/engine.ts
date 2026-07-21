@@ -21,6 +21,8 @@ import { redisGet, redisSet } from '@/lib/redis'
 import { adminStorage } from '@/lib/firebase-admin'
 import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
 import { chargeForDeliveredClip } from '@/lib/clipchain/billing'
+import { saveClip } from '@/lib/clipchain/library'
+import { emailClip } from '@/lib/clipchain/deliver'
 
 const execFileAsync = promisify(execFile)
 
@@ -68,6 +70,8 @@ export interface ClipJob {
   resolution: string
   videoUrl?: string
   audioPath?: string
+  email?: string
+  emailed?: boolean
   totalCost: number
   tickErrors?: number
   wastedCost?: number
@@ -78,7 +82,9 @@ export interface ClipJob {
   error?: string
 }
 
-const JOB_TTL_SECONDS = 60 * 60 * 24 // jobs readable for a day
+// Operational job state sticks around a week (resume, status re-checks).
+// The durable pointer to the finished film lives in the library, not here.
+const JOB_TTL_SECONDS = 60 * 60 * 24 * 7
 
 // Resilience budget: a shot may be resubmitted up to MAX_SHOT_ATTEMPTS times
 // (provider-side failures or hangs), and a tick may hit transient errors up to
@@ -739,6 +745,25 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           job.billingError = bill.error
           console.warn(`[clipchain] billing failed for ${job.id}:`, bill.error)
         }
+      }
+
+      // Durable delivery: library entry (survives the session), then email.
+      await saveClip(job.sessionId, {
+        jobId: job.id,
+        title: job.plan.title,
+        videoUrl: job.videoUrl,
+        seconds: job.shots.length * job.secondsPerShot,
+        shots: job.shots.length,
+        createdAt: Date.now(),
+        billedUsd: job.chargedUsd,
+      }).catch((err) => console.warn('[clipchain] library save failed:', err))
+      if (job.email && !job.emailed) {
+        job.emailed = await emailClip(
+          job.email,
+          job.plan.title,
+          job.videoUrl,
+          job.shots.length * job.secondsPerShot
+        )
       }
     }
 

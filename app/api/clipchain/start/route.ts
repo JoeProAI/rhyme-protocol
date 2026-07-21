@@ -33,6 +33,8 @@ const BodySchema = z.object({
   // From /api/clipchain/audio — the soundtrack laid under the final cut.
   audioPath: z.string().max(300).optional(),
   secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
+  // Where to send the finished film. Optional — the library keeps it either way.
+  email: z.string().email().max(254).optional(),
 })
 
 const SHOTS = 3
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style, plan: editedPlan, audioPath, secondsPerShot = SECONDS_PER_SHOT } = parsed.data
+    const { prompt, style, plan: editedPlan, audioPath, secondsPerShot = SECONDS_PER_SHOT, email } = parsed.data
 
     const cookieStore = cookies()
     let sessionId = cookieStore.get('anon_session')?.value
@@ -116,6 +118,7 @@ export async function POST(req: NextRequest) {
       secondsPerShot,
       resolution: RESOLUTION,
       audioPath,
+      email,
       totalCost: 0,
     }
 

@@ -89,6 +89,7 @@ export default function PipelineBoardPage() {
   const [shotCount, setShotCount] = useState(3)
   const [secondsPerShot, setSecondsPerShot] = useState<5 | 10 | 15>(5)
   const [audio, setAudio] = useState<{ path: string; name: string } | null>(null)
+  const [email, setEmail] = useState('')
   const [uploading, setUploading] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
@@ -238,6 +239,7 @@ export default function PipelineBoardPage() {
           plan,
           audioPath: audio?.path,
           secondsPerShot,
+          email: email.trim() || undefined,
         }),
       })
       const data = await res.json()
@@ -623,6 +625,30 @@ export default function PipelineBoardPage() {
                 >
                   {drafting ? 'RE-DRAFTING…' : 'RE-DRAFT FROM CONCEPT'}
                 </button>
+                <div>
+                  <label
+                    className="mb-1 block text-[10px] uppercase tracking-wider text-zinc-500"
+                    htmlFor="delivery-email"
+                  >
+                    Email the finished film to (optional)
+                  </label>
+                  <input
+                    id="delivery-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@..."
+                    className={inputCls}
+                    maxLength={254}
+                  />
+                  <p className="mt-1 text-[10px] text-zinc-600">
+                    Either way it&apos;s saved to{' '}
+                    <a href="/studio/clips" className="underline decoration-zinc-700 underline-offset-2">
+                      your clips
+                    </a>{' '}
+                    and stays hosted.
+                  </p>
+                </div>
                 <button
                   onClick={() => setStage('concept')}
                   className="text-left text-xs text-zinc-600 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-400"
@@ -802,6 +828,12 @@ export default function PipelineBoardPage() {
                     billed on delivery: ${job.billedUsd.toFixed(2)}
                   </span>
                 )}
+                <a
+                  href="/studio/clips"
+                  className="text-xs text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                >
+                  saved to your clips →
+                </a>
               </div>
             </motion.section>
           )}
