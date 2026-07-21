@@ -13,6 +13,7 @@
  */
 
 import { execFile } from 'child_process'
+import { randomUUID } from 'crypto'
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -581,12 +582,21 @@ async function uploadPublic(
   data: Buffer,
   contentType: string
 ): Promise<string> {
+  // Firebase download-token URL instead of per-object ACLs: the bucket has
+  // uniform bucket-level access, where makePublic() is forbidden. The token
+  // is the capability — bucket stays private, the URL works forever.
   const bucket = adminStorage().bucket()
   const path = bucketPath(jobId, file)
   const blob = bucket.file(path)
-  await blob.save(data, { contentType, resumable: false })
-  await blob.makePublic()
-  return `https://storage.googleapis.com/${bucket.name}/${path}`
+  const token = randomUUID()
+  await blob.save(data, {
+    resumable: false,
+    metadata: {
+      contentType,
+      metadata: { firebaseStorageDownloadTokens: token },
+    },
+  })
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`
 }
 
 async function downloadBuffer(url: string, auth = false): Promise<Buffer> {
