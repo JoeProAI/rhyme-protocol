@@ -6,6 +6,10 @@ const nextConfig = {
   // Enable instrumentation for PostHog
   experimental: {
     instrumentationHook: true,
+    // Ensure the platform ffmpeg binary ships with the clipchain functions
+    outputFileTracingIncludes: {
+      '/api/clipchain/**': ['./node_modules/ffmpeg-static/**'],
+    },
   },
   
   // Redirects

@@ -31,6 +31,9 @@
     "app/api/video-gen/**/*.ts": {
       "maxDuration": 300
     },
+    "app/api/clipchain/**/*.ts": {
+      "maxDuration": 300
+    },
     "app/api/**/*.ts": {
       "maxDuration": 60
     }
