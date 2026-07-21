@@ -151,6 +151,8 @@ export default function PipelineBoardPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       setAudio({ path: data.audioPath, name: data.name })
+      // Audio-first: mapping starts the moment the track lands. Free.
+      void analyzeAudio(data.audioPath)
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -159,15 +161,16 @@ export default function PipelineBoardPage() {
   }
 
   // Map the song's structure so the storyboard is drafted FROM it.
-  const analyzeAudio = async () => {
-    if (!audio || analyzing) return
+  const analyzeAudio = async (path?: string) => {
+    const audioPath = path ?? audio?.path
+    if (!audioPath || analyzing) return
     setAnalyzing(true)
     setErrorMessage('')
     try {
       const res = await fetch('/api/clipchain/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioPath: audio.path }),
+        body: JSON.stringify({ audioPath }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
@@ -410,10 +413,79 @@ export default function PipelineBoardPage() {
         {/* ------------------------------------------------ 01 CONCEPT */}
         {stage === 'concept' && (
           <section aria-label="Concept">
-            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-zinc-400">
-              Describe the film. The director model drafts a storyboard — art direction,
-              a signature motif, and every shot written out. Drafting is free; you edit
-              everything before a single frame is generated.
+            <div className="mb-4 rounded-lg border p-4" style={{ borderColor: 'rgba(201,162,39,0.4)', background: 'rgba(201,162,39,0.04)' }}>
+              <div className="mb-1 font-mono text-[10px] tracking-[0.25em]" style={{ color: ACCENT }}>
+                THE TRACK — START HERE
+              </div>
+              <p className="mb-3 text-xs text-zinc-400">
+                Upload your song and the film is built FROM it: we listen, map every
+                section and lyric with timestamps, and write one shot per beat of the
+                track. Music, a verse, any audio. Stored private, never published.
+              </p>
+              {audio ? (
+                <div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-zinc-200">{audio.name}</span>
+                    <button
+                      onClick={() => {
+                        setAudio(null)
+                        setTrack(null)
+                      }}
+                      className="text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+                    >
+                      remove
+                    </button>
+                  </div>
+                  {analyzing ? (
+                    <div className="mt-3 text-xs" style={{ color: ACCENT }}>
+                      <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full align-middle" style={{ background: ACCENT }} />
+                      Listening to the track — mapping sections and lyrics…
+                    </div>
+                  ) : track ? (
+                    <div className="mt-3 rounded-md border border-zinc-800 p-3">
+                      <div className="font-mono text-[10px]" style={{ color: ACCENT }}>
+                        TRACK MAPPED — the film will follow the song
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-400">
+                        {Math.floor(track.durationSec / 60)}:{String(Math.floor(track.durationSec % 60)).padStart(2, '0')} ·{' '}
+                        {track.sections.length} sections ·{' '}
+                        {track.sections.map((s) => s.label).join(' → ')}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => analyzeAudio()}
+                      className="mt-3 rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400"
+                      style={{ borderColor: ACCENT, color: ACCENT }}
+                    >
+                      MAP THE TRACK — FREE
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <label
+                  className="inline-block cursor-pointer rounded-lg px-5 py-2.5 text-xs font-bold text-black transition focus-within:ring-2 focus-within:ring-zinc-300"
+                  style={{ background: ACCENT }}
+                >
+                  {uploading ? 'UPLOADING…' : 'UPLOAD YOUR TRACK'}
+                  <input
+                    type="file"
+                    accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg"
+                    className="sr-only"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) uploadAudio(f)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="mb-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+              {track
+                ? 'Now give it a concept — the world the song lives in. The director drafts a storyboard from the track and your idea; you edit everything before a single frame is generated.'
+                : 'No track? Just describe the film. The director model drafts a storyboard — art direction, a signature motif, every shot written out. Drafting is free.'}
             </p>
             <textarea
               value={prompt}
@@ -440,69 +512,6 @@ export default function PipelineBoardPage() {
                   {s.label}
                 </button>
               ))}
-            </div>
-            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <div className="mb-1 font-mono text-[10px] tracking-[0.25em]" style={{ color: ACCENT }}>
-                SOUNDTRACK
-              </div>
-              <p className="mb-3 text-xs text-zinc-500">
-                Your audio under the final cut — a track, a verse, a voicemail, sound design.
-                Doesn&apos;t have to be music. Stored private, never published.
-              </p>
-              {audio ? (
-                <div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-zinc-200">{audio.name}</span>
-                    <button
-                      onClick={() => {
-                        setAudio(null)
-                        setTrack(null)
-                      }}
-                      className="text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
-                    >
-                      remove
-                    </button>
-                  </div>
-                  {track ? (
-                    <div className="mt-3 rounded-md border border-zinc-800 p-3">
-                      <div className="font-mono text-[10px]" style={{ color: ACCENT }}>
-                        TRACK MAPPED — the film will follow the song
-                      </div>
-                      <div className="mt-1 text-xs text-zinc-400">
-                        {Math.floor(track.durationSec / 60)}:{String(Math.floor(track.durationSec % 60)).padStart(2, '0')} ·{' '}
-                        {track.sections.length} sections ·{' '}
-                        {track.sections.map((s) => s.label).join(' → ')}
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={analyzeAudio}
-                      disabled={analyzing}
-                      className="mt-3 rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-50"
-                      style={{ borderColor: ACCENT, color: ACCENT }}
-                    >
-                      {analyzing ? 'LISTENING…' : 'MAP THE TRACK — FREE'}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <label className="inline-block cursor-pointer rounded-lg border px-4 py-2 text-xs font-bold transition focus-within:ring-1 focus-within:ring-zinc-400"
-                  style={{ borderColor: '#3f3f46', color: '#a1a1aa' }}
-                >
-                  {uploading ? 'UPLOADING…' : 'ADD AUDIO (OPTIONAL)'}
-                  <input
-                    type="file"
-                    accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,audio/ogg"
-                    className="sr-only"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) uploadAudio(f)
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-              )}
             </div>
             {products.length > 0 && (
               <div className="mt-4">
