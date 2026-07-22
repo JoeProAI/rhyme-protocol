@@ -17,6 +17,18 @@ interface PlannedShot {
   prompt: string
   camera?: string
   window?: string
+  dialogue?: { character: string; line: string }
+}
+
+interface CastMember {
+  character: string
+  voiceId: string
+}
+
+interface Voice {
+  voiceId: string
+  name: string
+  labels?: string
 }
 
 interface TrackSection {
@@ -39,6 +51,7 @@ interface ClipPlan {
   signature?: string
   style_bible: string
   shots: PlannedShot[]
+  cast?: CastMember[]
 }
 
 interface ShotStatus {
@@ -112,6 +125,7 @@ export default function PipelineBoardPage() {
   const [importText, setImportText] = useState('')
   const [rateCents, setRateCents] = useState(FALLBACK_RATE_CENTS)
   const [products, setProducts] = useState<ClipProduct[]>([])
+  const [voices, setVoices] = useState<Voice[]>([])
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -137,6 +151,41 @@ export default function PipelineBoardPage() {
 
   const flatPrice = (shots: number, seconds: number) =>
     ((shots * seconds * rateCents) / 100).toFixed(2)
+
+  // Characters that currently have lines — drives the cast panel.
+  const speakingCharacters = Array.from(
+    new Set(
+      (plan?.shots ?? [])
+        .map((s) => s.dialogue?.character.trim())
+        .filter((c): c is string => Boolean(c))
+    )
+  )
+
+  useEffect(() => {
+    if (speakingCharacters.length > 0 && voices.length === 0) {
+      fetch('/api/clipchain/voices')
+        .then((r) => (r.ok ? r.json() : { voices: [] }))
+        .then((d) => setVoices(d.voices ?? []))
+        .catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakingCharacters.length])
+
+  const setCastVoice = (character: string, voiceId: string) => {
+    if (!plan) return
+    const cast = (plan.cast ?? []).filter(
+      (c) => c.character.toLowerCase() !== character.toLowerCase()
+    )
+    if (voiceId) cast.push({ character, voiceId })
+    setPlan({ ...plan, cast })
+  }
+
+  const setDialogue = (i: number, character: string, line: string) => {
+    if (!plan) return
+    const dialogue = character.trim() || line.trim() ? { character, line } : undefined
+    const shots = plan.shots.map((s, idx) => (idx === i ? { ...s, dialogue } : s))
+    setPlan({ ...plan, shots })
+  }
 
   const styleText = preset ? STYLE_PRESETS.find((p) => p.id === preset)?.style : undefined
 
@@ -687,6 +736,44 @@ export default function PipelineBoardPage() {
                   className={inputCls}
                 />
               </div>
+              {speakingCharacters.length > 0 && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                  <div className="mb-1 font-mono text-[10px] tracking-[0.25em]" style={{ color: ACCENT }}>
+                    CAST
+                  </div>
+                  <p className="mb-3 text-[10px] text-zinc-600">
+                    One voice per character, consistent in every shot. Clone your own
+                    voice at ElevenLabs and it appears here.
+                  </p>
+                  {speakingCharacters.map((ch) => (
+                    <div key={ch} className="mb-2">
+                      <label
+                        className="mb-1 block text-[10px] uppercase tracking-wider text-zinc-500"
+                        htmlFor={`cast-${ch}`}
+                      >
+                        {ch}
+                      </label>
+                      <select
+                        id={`cast-${ch}`}
+                        value={plan.cast?.find((c) => c.character.toLowerCase() === ch.toLowerCase())?.voiceId ?? ''}
+                        onChange={(e) => setCastVoice(ch, e.target.value)}
+                        className={inputCls}
+                      >
+                        <option value="">— pick a voice —</option>
+                        {voices.map((v) => (
+                          <option key={v.voiceId} value={v.voiceId}>
+                            {v.name}
+                            {v.labels ? ` (${v.labels})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  {voices.length === 0 && (
+                    <p className="text-[10px] text-zinc-600">Loading voices…</p>
+                  )}
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <button
                   onClick={lockAndGenerate}
@@ -788,9 +875,30 @@ export default function PipelineBoardPage() {
                     id={`shot-${i}-camera`}
                     value={s.camera ?? ''}
                     onChange={(e) => updateShot(i, { camera: e.target.value })}
-                    className={inputCls}
+                    className={inputCls + ' mb-3'}
                     maxLength={300}
                   />
+                  <label className="mb-1 block text-[10px] uppercase tracking-wider text-zinc-500" htmlFor={`shot-${i}-dlg-char`}>
+                    Dialogue (optional — who speaks, and the line)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id={`shot-${i}-dlg-char`}
+                      value={s.dialogue?.character ?? ''}
+                      onChange={(e) => setDialogue(i, e.target.value, s.dialogue?.line ?? '')}
+                      placeholder="Character"
+                      className={inputCls + ' w-1/3'}
+                      maxLength={60}
+                    />
+                    <input
+                      aria-label={`Shot ${i + 1} dialogue line`}
+                      value={s.dialogue?.line ?? ''}
+                      onChange={(e) => setDialogue(i, s.dialogue?.character ?? '', e.target.value)}
+                      placeholder='"The line they speak on camera"'
+                      className={inputCls}
+                      maxLength={300}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

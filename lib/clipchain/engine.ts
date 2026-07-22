@@ -24,6 +24,7 @@ import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
 import { chargeForDeliveredClip } from '@/lib/clipchain/billing'
 import { saveClip } from '@/lib/clipchain/library'
 import { emailClip } from '@/lib/clipchain/deliver'
+import { ttsLine } from '@/lib/clipchain/voice'
 
 const execFileAsync = promisify(execFile)
 
@@ -35,6 +36,13 @@ export interface PlannedShot {
   camera?: string
   // Timed song window this shot covers, e.g. "0:45–1:00 · CHORUS 1".
   window?: string
+  // Dub mode: one spoken line per shot, delivered on camera.
+  dialogue?: { character: string; line: string }
+}
+
+export interface CastMember {
+  character: string
+  voiceId: string
 }
 
 export interface TrackSection {
@@ -57,6 +65,7 @@ export interface ClipPlan {
   signature?: string
   style_bible: string
   shots: PlannedShot[]
+  cast?: CastMember[]
 }
 
 export interface ShotState {
@@ -555,7 +564,8 @@ async function submitShot(
   prompt: string,
   duration: number,
   resolution: string,
-  frameUrl?: string
+  frameUrl?: string,
+  withAudio = false
 ): Promise<{ orId: string; pollUrl: string }> {
   const res = await fetch(`${OR_BASE}/videos`, {
     method: 'POST',
@@ -569,7 +579,10 @@ async function submitShot(
       duration,
       resolution,
       aspect_ratio: '16:9',
-      generate_audio: false,
+      // Dialogue shots generate with audio so the mouth animates saying the
+      // exact line; that scratch audio is replaced by the cast voice in the
+      // dub pass. Everything else stays silent.
+      generate_audio: withAudio,
       ...(frameUrl
         ? {
             frame_images: [
@@ -687,6 +700,66 @@ async function extractLastFrame(videoBuf: Buffer, jobId: string, shotIndex: numb
   return frame
 }
 
+const jobHasDialogue = (job: ClipJob) => job.plan.shots.some((s) => s.dialogue)
+
+function voiceFor(job: ClipJob, character: string): string | undefined {
+  return job.plan.cast?.find(
+    (c) => c.character.trim().toLowerCase() === character.trim().toLowerCase()
+  )?.voiceId
+}
+
+/**
+ * The dub pass: replace a dialogue shot's scratch audio with the character's
+ * cast voice (or give a silent bed to non-dialogue shots so every clip in a
+ * talking film carries a uniform audio stream for concat). Video is never
+ * re-encoded here.
+ */
+async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<Buffer> {
+  const shot = job.plan.shots[index]
+  const dir = join(tmpdir(), 'clipchain')
+  await mkdir(dir, { recursive: true })
+  const vidPath = join(dir, `${job.id}-dub${index}.mp4`)
+  const outPath = join(dir, `${job.id}-dub${index}-out.mp4`)
+  await writeFile(vidPath, videoBuf)
+  const ff = await ffmpegPath()
+  const dur = job.secondsPerShot
+  const cleanup = [vidPath, outPath]
+
+  try {
+    const voiceId = shot.dialogue ? voiceFor(job, shot.dialogue.character) : undefined
+    if (shot.dialogue && voiceId) {
+      const lineBuf = await ttsLine(voiceId, shot.dialogue.line)
+      const linePath = join(dir, `${job.id}-dub${index}.mp3`)
+      cleanup.push(linePath)
+      await writeFile(linePath, lineBuf)
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', vidPath, '-i', linePath,
+        '-map', '0:v', '-map', '1:a',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+        '-af', 'apad',
+        '-t', String(dur),
+        '-y', outPath,
+      ])
+    } else {
+      // Silent uniform bed (also covers dialogue with no cast voice —
+      // better silent than the wrong voice).
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', vidPath,
+        '-f', 'lavfi', '-t', String(dur), '-i', 'anullsrc=r=44100:cl=stereo',
+        '-map', '0:v', '-map', '1:a',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-t', String(dur),
+        '-y', outPath,
+      ])
+    }
+    return await readFile(outPath)
+  } finally {
+    await Promise.all(cleanup.map((p) => unlink(p).catch(() => {})))
+  }
+}
+
 async function concatShots(job: ClipJob): Promise<Buffer> {
   const dir = join(tmpdir(), 'clipchain', job.id)
   await mkdir(dir, { recursive: true })
@@ -706,35 +779,51 @@ async function concatShots(job: ClipJob): Promise<Buffer> {
   )
   const outPath = join(dir, 'final.mp4')
   const ff = await ffmpegPath()
+  const talking = jobHasDialogue(job)
   await execFileAsync(ff, [
     '-hide_banner', '-loglevel', 'error',
     '-f', 'concat', '-safe', '0', '-i', listPath,
-    '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', '24', '-an',
+    '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', '24',
+    // Talking films carry per-shot dubbed audio through the cut;
+    // music films concat silent and get the track laid under after.
+    ...(talking ? ['-c:a', 'aac', '-b:a', '192k'] : ['-an']),
     '-movflags', '+faststart', '-y', outPath,
   ])
 
   const cleanup: string[] = [...locals, listPath, outPath]
   let finalPath = outPath
 
-  // Audio underlay: the user's track (music, vocal, anything) laid under the
-  // cut, trimmed to the video's length with a fade-out. Shots are generated
-  // silent; the uploaded audio IS the soundtrack.
   if (job.audioPath) {
     const audioLocal = join(dir, 'track')
     await bucket.file(job.audioPath).download({ destination: audioLocal })
     const durationSec = job.shots.length * job.secondsPerShot
     const fadeStart = Math.max(0, durationSec - 1.2)
     const muxPath = join(dir, 'final-audio.mp4')
-    await execFileAsync(ff, [
-      '-hide_banner', '-loglevel', 'error',
-      '-i', outPath, '-i', audioLocal,
-      '-map', '0:v', '-map', '1:a',
-      '-c:v', 'copy',
-      '-c:a', 'aac', '-b:a', '192k',
-      '-af', `afade=t=out:st=${fadeStart}:d=1.2`,
-      '-t', String(durationSec),
-      '-movflags', '+faststart', '-y', muxPath,
-    ])
+    if (talking) {
+      // Music bed UNDER the dialogue: track ducked, dialogue on top.
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', outPath, '-i', audioLocal,
+        '-filter_complex',
+        `[1:a]volume=0.25,afade=t=out:st=${fadeStart}:d=1.2[bed];[0:a][bed]amix=inputs=2:duration=first:normalize=0[mix]`,
+        '-map', '0:v', '-map', '[mix]',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-t', String(durationSec),
+        '-movflags', '+faststart', '-y', muxPath,
+      ])
+    } else {
+      // Music film: the uploaded track IS the soundtrack.
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', outPath, '-i', audioLocal,
+        '-map', '0:v', '-map', '1:a',
+        '-c:v', 'copy',
+        '-c:a', 'aac', '-b:a', '192k',
+        '-af', `afade=t=out:st=${fadeStart}:d=1.2`,
+        '-t', String(durationSec),
+        '-movflags', '+faststart', '-y', muxPath,
+      ])
+    }
     cleanup.push(audioLocal, muxPath)
     finalPath = muxPath
   }
@@ -751,6 +840,9 @@ function shotFullPrompt(job: ClipJob, index: number, continuity?: string): strin
   return [
     shot.prompt,
     shot.window ? `SONG WINDOW (this shot's beat in the track): ${shot.window}` : '',
+    shot.dialogue
+      ? `DIALOGUE: ${shot.dialogue.character} speaks these exact words on camera, face clearly visible and near-frontal while speaking, natural mouth articulation: "${shot.dialogue.line}"`
+      : '',
     `Camera: ${shot.camera ?? 'as specified in the style bible'}`,
     job.plan.signature ? `SIGNATURE MOTIF (must appear): ${job.plan.signature}` : '',
     `STYLE BIBLE: ${job.plan.style_bible}`,
@@ -795,7 +887,8 @@ export async function startJob(job: ClipJob): Promise<void> {
     fullPrompt,
     job.secondsPerShot,
     job.resolution,
-    seedUrl
+    seedUrl,
+    Boolean(job.plan.shots[0].dialogue)
   )
   job.shots[0] = {
     name: job.plan.shots[0].name,
@@ -831,7 +924,8 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
     fullPrompt,
     job.secondsPerShot,
     job.resolution,
-    prevFrame
+    prevFrame,
+    Boolean(job.plan.shots[idx].dialogue)
   )
   job.shots[idx] = {
     name: job.plan.shots[idx].name,
@@ -904,7 +998,12 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
         await trackSpend(job.sessionId, st.usage.cost).catch(() => {})
         await saveJob(job)
       }
-      const videoBuf = await downloadBuffer(srcUrl, true)
+      let videoBuf = await downloadBuffer(srcUrl, true)
+      if (jobHasDialogue(job)) {
+        job.message = `Shot ${job.current + 1} done — dubbing the cast voice…`
+        await saveJob(job)
+        videoBuf = await dubShot(job, job.current, videoBuf)
+      }
       const shotFile = `shot-${job.current + 1}.mp4`
       await uploadPublic(job.id, shotFile, videoBuf, 'video/mp4')
       shot.storagePath = bucketPath(job.id, shotFile)
@@ -938,7 +1037,8 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           fullPrompt,
           job.secondsPerShot,
           job.resolution,
-          frameUrl
+          frameUrl,
+          Boolean(job.plan.shots[next].dialogue)
         )
         job.shots[next] = {
           name: job.plan.shots[next].name,
