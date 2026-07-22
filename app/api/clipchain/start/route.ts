@@ -19,10 +19,25 @@ const PlanSchema = z.object({
         prompt: z.string().min(20, 'Each shot prompt needs real direction').max(1200),
         camera: z.string().max(300).optional(),
         window: z.string().max(120).optional(),
+        dialogue: z
+          .object({
+            character: z.string().min(1).max(60),
+            line: z.string().min(1).max(300),
+          })
+          .optional(),
       })
     )
     .min(2)
     .max(25),
+  cast: z
+    .array(
+      z.object({
+        character: z.string().min(1).max(60),
+        voiceId: z.string().min(1).max(80),
+      })
+    )
+    .max(8)
+    .optional(),
 })
 
 const BodySchema = z.object({
