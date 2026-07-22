@@ -158,6 +158,45 @@ async function orChat(
   return out.choices?.[0]?.message?.content ?? ''
 }
 
+/**
+ * Generate an image via an OpenRouter image-output model (Nano Banana family).
+ * Returns the raw image bytes, or null on any failure — seed frames are an
+ * upgrade, never a blocker.
+ */
+async function orImage(prompt: string, model: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(`${OR_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${orKey()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        modalities: ['image', 'text'],
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+    if (!res.ok) {
+      console.warn(`[clipchain] image model ${res.status}:`, (await res.text()).slice(0, 200))
+      return null
+    }
+    const out = await res.json()
+    const msg = out.choices?.[0]?.message
+    const dataUrl: string | undefined =
+      msg?.images?.[0]?.image_url?.url ??
+      (Array.isArray(msg?.content)
+        ? msg.content.find((c: { type?: string }) => c.type === 'image_url')?.image_url?.url
+        : undefined)
+    if (!dataUrl?.startsWith('data:')) return null
+    const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1)
+    return Buffer.from(b64, 'base64')
+  } catch (err) {
+    console.warn('[clipchain] image generation failed:', err)
+    return null
+  }
+}
+
 function parseJsonLoose<T>(text: string): T {
   try {
     return JSON.parse(text) as T
@@ -723,23 +762,54 @@ function shotFullPrompt(job: ClipJob, index: number, continuity?: string): strin
     .join('\n')
 }
 
+// Nano Banana Pro by default — master frames are where consistency is won.
+const IMAGE_MODEL = process.env.CLIPCHAIN_IMAGE_MODEL ?? 'google/gemini-3-pro-image'
+
+/**
+ * The SIGNAL BLOOM discipline: an image model renders the film's opening
+ * master frame from the bible BEFORE any video is generated, and shot 1
+ * seeds from it. The whole chain then inherits the image model's craft
+ * instead of the video model's first guess. Failure returns undefined —
+ * the film still generates, just unseeded.
+ */
+async function generateSeedFrame(job: ClipJob): Promise<string | undefined> {
+  const shot = job.plan.shots[0]
+  const prompt = [
+    `A single cinematic film frame — the OPENING frame of a film. Render it as a real photographed frame in this exact visual world, nothing outside it.`,
+    `STYLE BIBLE (absolute law): ${job.plan.style_bible}`,
+    `THE FRAME: ${shot.prompt}`,
+    shot.camera ? `Camera: ${shot.camera}` : '',
+    `16:9 widescreen. No text, no titles, no watermarks, no borders. This frame is the first thing the audience sees — it must read as ${job.plan.art_direction ?? 'the named medium'} and nothing else.`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+  const buf = await orImage(prompt, IMAGE_MODEL)
+  if (!buf) return undefined
+  return uploadPublic(job.id, 'seed-frame.jpg', buf, 'image/jpeg')
+}
+
 export async function startJob(job: ClipJob): Promise<void> {
+  const seedUrl = await generateSeedFrame(job)
   const fullPrompt = shotFullPrompt(job, 0)
   const { orId, pollUrl } = await submitShot(
     fullPrompt,
     job.secondsPerShot,
-    job.resolution
+    job.resolution,
+    seedUrl
   )
   job.shots[0] = {
     name: job.plan.shots[0].name,
     fullPrompt,
     orId,
     pollUrl,
+    frameUrl: seedUrl,
     attempts: 1,
     submittedAt: Date.now(),
     done: false,
   }
-  job.message = `Shot 1/${job.plan.shots.length}: generating…`
+  job.message = seedUrl
+    ? `Master frame set — shot 1/${job.plan.shots.length}: generating…`
+    : `Shot 1/${job.plan.shots.length}: generating…`
   await saveJob(job)
 }
 
@@ -753,7 +823,9 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
       `Shot ${idx + 1} failed after ${attempts} attempts (${reason}). Completed shots are saved — resume to try again.`
     )
   }
-  const prevFrame = idx > 0 ? job.shots[idx - 1]?.frameUrl : undefined
+  // Shot 1 reseeds from its master frame; later shots from the previous
+  // shot's extracted last frame.
+  const prevFrame = idx > 0 ? job.shots[idx - 1]?.frameUrl : job.shots[0]?.frameUrl
   const fullPrompt = existing?.fullPrompt ?? shotFullPrompt(job, idx)
   const { orId, pollUrl } = await submitShot(
     fullPrompt,
@@ -766,6 +838,7 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
     fullPrompt,
     orId,
     pollUrl,
+    frameUrl: existing?.frameUrl,
     attempts: attempts + 1,
     submittedAt: Date.now(),
     done: false,
