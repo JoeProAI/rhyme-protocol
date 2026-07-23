@@ -194,6 +194,32 @@ export default function PipelineBoardPage() {
     setErrorMessage('')
     setTrack(null)
     try {
+      // Real songs exceed the 4.5MB function cap — go straight to storage
+      // with a signed URL, falling back to the proxy route for small files.
+      const signRes = await fetch('/api/clipchain/audio/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentType: file.type }),
+      })
+      const sign = await signRes.json().catch(() => ({}))
+      if (signRes.ok && sign.uploadUrl) {
+        try {
+          const put = await fetch(sign.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+          })
+          if (!put.ok) throw new Error(`storage ${put.status}`)
+          setAudio({ path: sign.audioPath, name: file.name })
+          void analyzeAudio(sign.audioPath)
+          return
+        } catch {
+          // CORS/network — fall through to the proxy route below
+        }
+      }
+      if (file.size > 4 * 1024 * 1024) {
+        throw new Error('Direct upload unavailable and the file is over 4MB — try again in a minute')
+      }
       const form = new FormData()
       form.append('audio', file)
       const res = await fetch('/api/clipchain/audio', { method: 'POST', body: form })
