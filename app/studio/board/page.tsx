@@ -131,6 +131,9 @@ export default function PipelineBoardPage() {
   const [drafting, setDrafting] = useState(false)
   const [locking, setLocking] = useState(false)
   const [resuming, setResuming] = useState(false)
+  const [retakeIdx, setRetakeIdxRaw] = useState<number | null>(null)
+  const [retakePrompt, setRetakePrompt] = useState('')
+  const [retaking, setRetaking] = useState(false)
   const [gateMessage, setGateMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [shared, setShared] = useState(false)
@@ -397,6 +400,42 @@ export default function PipelineBoardPage() {
       pollRef.current = setTimeout(() => poll(jobId), 5000)
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Lost contact with the job')
+    }
+  }
+
+  const setRetakeIdx = (i: number | null) => {
+    setRetakeIdxRaw(i)
+    if (i !== null && plan) setRetakePrompt(plan.shots[i]?.prompt ?? '')
+  }
+
+  const submitRetake = async (mode: 'keep' | 'rechain') => {
+    if (!job || retakeIdx === null || retaking) return
+    setRetaking(true)
+    setErrorMessage('')
+    try {
+      const res = await fetch(`/api/clipchain/retake/${job.jobId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shot: retakeIdx + 1,
+          mode,
+          prompt: retakePrompt.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (res.status === 402) {
+        setGateMessage(data.message || 'Daily limit reached.')
+        return
+      }
+      if (!res.ok) throw new Error(data.error || 'Retake failed')
+      setJob(data)
+      setRetakeIdxRaw(null)
+      setStage('shots')
+      pollRef.current = setTimeout(() => poll(data.jobId), 5000)
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Retake failed')
+    } finally {
+      setRetaking(false)
     }
   }
 
@@ -1057,6 +1096,75 @@ export default function PipelineBoardPage() {
                   saved to your clips →
                 </a>
               </div>
+
+              {/* The editing room — reshoot any shot by taste */}
+              {plan && (
+                <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+                  <div className="mb-1 font-mono text-[10px] tracking-[0.25em]" style={{ color: ACCENT }}>
+                    RETAKES
+                  </div>
+                  <p className="mb-3 text-xs text-zinc-500">
+                    Not feeling a shot? Reshoot just that one (fast, slight cut at the next
+                    joint) or reshoot it and everything after (full continuity). Same link,
+                    new cut.
+                  </p>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {plan.shots.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setRetakeIdx(retakeIdx === i ? null : i)}
+                        aria-pressed={retakeIdx === i}
+                        className="rounded-md border px-3 py-1.5 font-mono text-[10px] transition focus-visible:ring-1 focus-visible:ring-zinc-400"
+                        style={
+                          retakeIdx === i
+                            ? { borderColor: ACCENT, color: ACCENT }
+                            : { borderColor: '#27272a', color: '#a1a1aa' }
+                        }
+                      >
+                        {String(i + 1).padStart(2, '0')} {s.name.slice(0, 18)}
+                      </button>
+                    ))}
+                  </div>
+                  {retakeIdx !== null && plan.shots[retakeIdx] && (
+                    <div>
+                      <label
+                        className="mb-1 block text-[10px] uppercase tracking-wider text-zinc-500"
+                        htmlFor="retake-prompt"
+                      >
+                        Shot {retakeIdx + 1} prompt (edit before reshooting)
+                      </label>
+                      <textarea
+                        id="retake-prompt"
+                        value={retakePrompt}
+                        onChange={(e) => setRetakePrompt(e.target.value)}
+                        rows={3}
+                        maxLength={1200}
+                        className={inputCls + ' mb-3'}
+                      />
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => submitRetake('keep')}
+                          disabled={retaking}
+                          className="rounded-lg px-4 py-2 text-xs font-bold text-black transition focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:opacity-40"
+                          style={{ background: ACCENT }}
+                        >
+                          {retaking ? 'RESHOOTING…' : `RESHOOT THIS SHOT — $${flatPrice(1, secondsPerShot)}`}
+                        </button>
+                        {retakeIdx < plan.shots.length - 1 && (
+                          <button
+                            onClick={() => submitRetake('rechain')}
+                            disabled={retaking}
+                            className="rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-40"
+                            style={{ borderColor: ACCENT, color: ACCENT }}
+                          >
+                            RESHOOT FROM HERE — ${flatPrice(plan.shots.length - retakeIdx, secondsPerShot)}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.section>
           )}
         </AnimatePresence>

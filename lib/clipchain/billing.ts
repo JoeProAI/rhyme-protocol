@@ -31,7 +31,10 @@ export async function chargeForDeliveredClip(
   sessionId: string,
   jobId: string,
   shotCount: number,
-  secondsPerShot: number
+  secondsPerShot: number,
+  // Retakes are separate deliveries: the sequence number keys a fresh
+  // idempotent charge instead of deduping against the original one.
+  retakeSeq = 0
 ): Promise<ChargeResult> {
   const payment = await redisGet<{ has_payment: boolean; stripe_customer_id?: string }>(
     `payment:${sessionId}`
@@ -67,7 +70,7 @@ export async function chargeForDeliveredClip(
         description: `ClipChain clip ${jobId} (${shotCount} shots x ${secondsPerShot}s)`,
         metadata: { jobId, sessionId, shots: String(shotCount), secondsPerShot: String(secondsPerShot) },
       },
-      { idempotencyKey: `clipchain-${jobId}` }
+      { idempotencyKey: retakeSeq > 0 ? `clipchain-${jobId}-r${retakeSeq}` : `clipchain-${jobId}` }
     )
 
     if (intent.status === 'succeeded') {
