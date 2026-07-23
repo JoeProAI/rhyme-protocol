@@ -128,6 +128,9 @@ export default function PipelineBoardPage() {
   const [voices, setVoices] = useState<Voice[]>([])
   const [balanceCents, setBalanceCents] = useState(0)
   const [toppingUp, setToppingUp] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponMsg, setCouponMsg] = useState('')
+  const [redeeming, setRedeeming] = useState(false)
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -159,6 +162,29 @@ export default function PipelineBoardPage() {
       })
       .catch(() => {})
   }, [])
+
+  const redeemCoupon = async () => {
+    if (!couponCode.trim() || redeeming) return
+    setRedeeming(true)
+    setCouponMsg('')
+    try {
+      const res = await fetch('/api/coupons/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim() }),
+      })
+      const data = await res.json()
+      setCouponMsg(res.ok ? data.message ?? 'Code redeemed.' : data.error ?? 'Invalid code')
+      if (res.ok) {
+        setCouponCode('')
+        setGateMessage('')
+      }
+    } catch {
+      setCouponMsg('Could not redeem right now')
+    } finally {
+      setRedeeming(false)
+    }
+  }
 
   // Buy in — one-time checkout, nothing stored, balance spends on delivery.
   const topUp = async (amountCents: number) => {
@@ -743,6 +769,25 @@ export default function PipelineBoardPage() {
                 {(shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS) &&
                   ' · film scale, card required'}
               </span>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Invite code?"
+                aria-label="Invite code"
+                maxLength={40}
+                className={inputCls + ' w-40'}
+              />
+              <button
+                onClick={redeemCoupon}
+                disabled={redeeming || !couponCode.trim()}
+                className="rounded-lg border px-4 py-2 text-xs font-bold transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-40"
+                style={{ borderColor: ACCENT, color: ACCENT }}
+              >
+                {redeeming ? 'REDEEMING…' : 'REDEEM'}
+              </button>
+              {couponMsg && <span className="text-xs text-zinc-400">{couponMsg}</span>}
             </div>
             <div className="mt-4">
               <button

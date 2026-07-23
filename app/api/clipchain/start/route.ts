@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { checkUsage, trackUsage, generateSessionId, getPaymentInfo } from '@/lib/usage-system'
-import { redisGet } from '@/lib/redis'
+import { redisGet, redisSet } from '@/lib/redis'
 import { getBalanceCents } from '@/lib/clipchain/credits'
 import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
 import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/clipchain/engine'
@@ -17,6 +17,9 @@ const FILM_SCALE_TIERS = ['VIP', 'UTOPIA', 'PRODUCER']
 // public repo — leaked by definition. Only redemptions of the new env-var
 // codes (after the rotation deploy) may unlock film scale.
 const FILM_SCALE_COUPON_EPOCH = '2026-07-23T05:00:00.000Z'
+
+// Films an invite coupon runs on the house before the top-up path kicks in.
+const COUPON_FILM_LIMIT = 3
 
 async function hasFilmScaleCoupon(sessionId: string): Promise<boolean> {
   const coupon = await redisGet<{ tier?: string; expiresAt?: string; redeemedAt?: string }>(
@@ -112,12 +115,23 @@ export async function POST(req: NextRequest) {
 
     const shotCount = editedPlan?.shots.length ?? SHOTS
     const filmScale = shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS
-    // No card required: coupon invites run on the house, everyone else
-    // prepays a balance that only delivery deducts.
+    // No card required: coupon invites run on the house (capped), everyone
+    // else prepays a balance that only delivery deducts.
     let requiresPayment = false
     if (filmScale) {
       const priceCents = shotCount * secondsPerShot * PRICE_PER_SECOND_CENTS
-      if (!(await hasFilmScaleCoupon(sessionId))) {
+      let onHouse = false
+      if (await hasFilmScaleCoupon(sessionId)) {
+        // Invites are generous, not infinite: a few films on the house,
+        // then the same top-up path as everyone else.
+        const usedKey = `coupon:films:${sessionId}`
+        const used = (await redisGet<number>(usedKey)) ?? 0
+        if (used < COUPON_FILM_LIMIT) {
+          onHouse = true
+          await redisSet(usedKey, used + 1)
+        }
+      }
+      if (!onHouse) {
         const payment = await getPaymentInfo(sessionId)
         const balance = await getBalanceCents(sessionId)
         if (!payment.has_payment && balance < priceCents) {
