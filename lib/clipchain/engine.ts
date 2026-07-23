@@ -23,7 +23,7 @@ import { adminStorage } from '@/lib/firebase-admin'
 import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
 import { chargeForDeliveredClip } from '@/lib/clipchain/billing'
 import { deductBalanceCents } from '@/lib/clipchain/credits'
-import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
+import { rateForResolution } from '@/lib/clipchain/pricing'
 import { saveClip } from '@/lib/clipchain/library'
 import { emailClip } from '@/lib/clipchain/deliver'
 import { ttsLine } from '@/lib/clipchain/voice'
@@ -98,6 +98,9 @@ export interface ClipJob {
   resolution: string
   videoUrl?: string
   audioPath?: string
+  // Chapter hand-off: when set, shot 1 seeds from this frame instead of a
+  // generated master frame — the previous chapter's closing image.
+  seedFrameUrl?: string
   email?: string
   emailed?: boolean
   totalCost: number
@@ -967,8 +970,21 @@ async function generateSeedFrame(job: ClipJob): Promise<string | undefined> {
   return uploadPublic(job.id, 'seed-frame.jpg', buf, 'image/jpeg')
 }
 
+/**
+ * The closing frame of a completed film — the hand-off for chapter chaining.
+ * The final shot never had a frame extracted (nothing followed it), so
+ * derive it from storage on demand.
+ */
+export async function deriveFinalFrame(job: ClipJob): Promise<string | undefined> {
+  const last = job.shots[job.shots.length - 1]
+  if (!last?.storagePath) return undefined
+  const [buf] = await adminStorage().bucket().file(last.storagePath).download()
+  const frameBuf = await extractLastFrame(Buffer.from(buf), job.id, job.shots.length)
+  return uploadPublic(job.id, `final-frame.jpg`, frameBuf, 'image/jpeg')
+}
+
 export async function startJob(job: ClipJob): Promise<void> {
-  const seedUrl = await generateSeedFrame(job)
+  const seedUrl = job.seedFrameUrl ?? (await generateSeedFrame(job))
   const fullPrompt = shotFullPrompt(job, 0)
   const { orId, pollUrl, frameDropped } = await submitShotSafe(
     fullPrompt,
@@ -1169,7 +1185,9 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       // a re-entered tick cannot double-charge.
       if (!job.charged && job.requiresPayment) {
         const cents =
-          (job.billableShots ?? job.shots.length) * job.secondsPerShot * PRICE_PER_SECOND_CENTS
+          (job.billableShots ?? job.shots.length) *
+          job.secondsPerShot *
+          rateForResolution(job.resolution)
         if (await deductBalanceCents(job.sessionId, cents)) {
           // Prepaid path: balance spent on delivery, nothing stored, no card.
           job.charged = true

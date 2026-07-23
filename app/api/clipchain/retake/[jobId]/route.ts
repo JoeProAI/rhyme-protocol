@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { loadJob, retakeShot, publicJob } from '@/lib/clipchain/engine'
 import { checkUsage, trackUsage, getPaymentInfo } from '@/lib/usage-system'
 import { getBalanceCents } from '@/lib/clipchain/credits'
-import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
+import { rateForResolution } from '@/lib/clipchain/pricing'
 
 export const runtime = 'nodejs'
 // May regenerate a master frame and re-derive a seed frame before submitting.
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
     // retake so the reshoot loop can't become a free farm.
     const retakeShots =
       parsed.data.mode === 'rechain' ? job.plan.shots.length - (parsed.data.shot - 1) : 1
-    const priceCents = retakeShots * job.secondsPerShot * PRICE_PER_SECOND_CENTS
+    const priceCents = retakeShots * job.secondsPerShot * rateForResolution(job.resolution)
     const payment = await getPaymentInfo(job.sessionId)
     const balance = await getBalanceCents(job.sessionId)
     let requiresPayment = false
