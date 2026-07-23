@@ -998,7 +998,12 @@ function shotFullPrompt(job: ClipJob, index: number, continuity?: string): strin
         : `The character speaks the quoted line aloud with audible voice and natural lip-sync.`
       : '',
     `Camera: ${shot.camera ?? 'as specified in the style bible'}`,
-    job.plan.signature ? `SIGNATURE MOTIF (must appear): ${job.plan.signature}` : '',
+    // "must appear" made audio-native models render the motif LITERALLY in
+    // every shot (a chapter collapsed into 7 straight eyeball macros) — the
+    // motif is a thread through the film, never the subject of a shot.
+    job.plan.signature
+      ? `SIGNATURE MOTIF (a recurring thread across the film — express it through the staging already specified above; it must never replace this shot's subject, scale, or framing): ${job.plan.signature}`
+      : '',
     `STYLE BIBLE: ${job.plan.style_bible}`,
     continuity
       ? `\nCONTINUITY — the shot begins exactly at the provided frame; maintain:\n${continuity}`
