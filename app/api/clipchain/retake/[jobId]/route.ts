@@ -30,6 +30,8 @@ const BodySchema = z.object({
   mode: z.enum(['keep', 'rechain']),
   prompt: z.string().min(20).max(1200).optional(),
   camera: z.string().max(300).optional(),
+  // Reclassify the shot's line as offscreen narration on this retake.
+  offscreen: z.boolean().optional(),
 })
 
 /**
@@ -88,6 +90,11 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
         )
       }
       await trackUsage(job.sessionId, 'clip_generations', 1)
+    }
+
+    if (parsed.data.offscreen !== undefined) {
+      const dlg = job.plan.shots[parsed.data.shot - 1]?.dialogue
+      if (dlg) dlg.offscreen = parsed.data.offscreen
     }
 
     const after = await retakeShot(
