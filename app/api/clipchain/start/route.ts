@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { checkUsage, trackUsage, generateSessionId, getPaymentInfo } from '@/lib/usage-system'
+import { redisGet } from '@/lib/redis'
 import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/clipchain/engine'
+
+// Owner-approved (Joe, 2026-07-23): premium coupon tiers unlock film scale
+// without a card on file — invite-grade codes for artists the house backs.
+// Film-scale coupon sessions are not billed (no card); generation cost is
+// the house's spend, same as the free tier.
+const FILM_SCALE_TIERS = ['VIP', 'UTOPIA', 'PRODUCER']
+
+async function hasFilmScaleCoupon(sessionId: string): Promise<boolean> {
+  const coupon = await redisGet<{ tier?: string; expiresAt?: string }>(`coupon:user:${sessionId}`)
+  if (!coupon?.tier || !FILM_SCALE_TIERS.includes(coupon.tier)) return false
+  return !coupon.expiresAt || new Date(coupon.expiresAt) > new Date()
+}
 
 export const runtime = 'nodejs'
 export const maxDuration = 60 // storyboard + first shot submit
@@ -91,7 +104,7 @@ export async function POST(req: NextRequest) {
     const filmScale = shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS
     if (filmScale) {
       const payment = await getPaymentInfo(sessionId)
-      if (!payment.has_payment) {
+      if (!payment.has_payment && !(await hasFilmScaleCoupon(sessionId))) {
         return NextResponse.json(
           {
             error: 'limit',
