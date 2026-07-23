@@ -1453,6 +1453,8 @@ export function publicJob(job: ClipJob) {
       done: job.shots[i]?.done ?? false,
       generating: i === job.current && job.status === 'generating',
       attempts: job.shots[i]?.attempts,
+      // Closing frame of each finished shot — the owner's mid-flight QC view.
+      frameUrl: job.shots[i]?.frameUrl,
     })),
     videoUrl: job.videoUrl,
     totalCost: job.totalCost > 0 ? Number(job.totalCost.toFixed(2)) : undefined,
