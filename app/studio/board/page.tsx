@@ -84,7 +84,7 @@ interface ClipProduct {
   id: string
   label: string
   shots: number
-  secondsPerShot: 5 | 10 | 15
+  secondsPerShot: 5 | 10 | 12 | 15
   seconds: number
   priceCents: number
   filmScale: boolean
@@ -115,7 +115,7 @@ export default function PipelineBoardPage() {
   const [prompt, setPrompt] = useState('')
   const [preset, setPreset] = useState<string | null>(null)
   const [shotCount, setShotCount] = useState(3)
-  const [secondsPerShot, setSecondsPerShot] = useState<5 | 10 | 15>(5)
+  const [secondsPerShot, setSecondsPerShot] = useState<5 | 10 | 12 | 15>(5)
   const [audio, setAudio] = useState<{ path: string; name: string } | null>(null)
   const [track, setTrack] = useState<TrackMap | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -748,7 +748,7 @@ export default function PipelineBoardPage() {
                 </button>
               ))}
               <span className="text-xs text-zinc-500">Length:</span>
-              {([5, 10, 15] as const).map((s) => (
+              {([5, 10, 12, 15] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSecondsPerShot(s)}

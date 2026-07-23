@@ -26,7 +26,7 @@ const BodySchema = z.object({
   prompt: z.string().min(8, 'Describe your clip in at least a few words').max(600),
   style: z.string().max(400).optional(),
   shots: z.number().int().min(2).max(12).optional(),
-  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
+  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(12), z.literal(15)]).optional(),
   // From /api/clipchain/analyze — when present, the board is drafted FROM
   // the song: one shot per timed window, count derived from track length.
   track: TrackSchema.optional(),

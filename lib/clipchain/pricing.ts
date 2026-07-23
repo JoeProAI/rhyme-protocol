@@ -20,13 +20,13 @@ export interface ClipProduct {
   id: string
   label: string
   shots: number
-  secondsPerShot: 5 | 10 | 15
+  secondsPerShot: 5 | 10 | 12 | 15
   seconds: number
   priceCents: number
   filmScale: boolean
 }
 
-const SHAPES: { id: string; label: string; shots: number; secondsPerShot: 5 | 10 | 15 }[] = [
+const SHAPES: { id: string; label: string; shots: number; secondsPerShot: 5 | 10 | 12 | 15 }[] = [
   { id: 'clip', label: 'Clip', shots: 3, secondsPerShot: 5 },
   { id: 'scene', label: 'Scene', shots: 6, secondsPerShot: 10 },
   { id: 'video', label: 'Music video', shots: 12, secondsPerShot: 15 },
