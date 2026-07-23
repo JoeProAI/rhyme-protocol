@@ -27,6 +27,12 @@
       ]
     }
   ],
+  "crons": [
+    {
+      "path": "/api/clipchain/cron",
+      "schedule": "* * * * *"
+    }
+  ],
   "functions": {
     "app/api/video-gen/**/*.ts": {
       "maxDuration": 300
