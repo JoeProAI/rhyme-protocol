@@ -606,6 +606,32 @@ async function submitShot(
   }
 }
 
+/**
+ * Submit with seed-frame fallback: Seedance's privacy filter sometimes
+ * rejects photoreal seed images as "may contain real person". An unseeded
+ * shot beats a dead film — drop the frame and retry once.
+ */
+async function submitShotSafe(
+  prompt: string,
+  duration: number,
+  resolution: string,
+  frameUrl?: string,
+  withAudio = false
+): Promise<{ orId: string; pollUrl: string; frameDropped: boolean }> {
+  try {
+    const r = await submitShot(prompt, duration, resolution, frameUrl, withAudio)
+    return { ...r, frameDropped: false }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (frameUrl && /InputImageSensitiveContent|may contain real person/i.test(msg)) {
+      console.warn('[clipchain] seed frame rejected by provider filter — retrying unseeded')
+      const r = await submitShot(prompt, duration, resolution, undefined, withAudio)
+      return { ...r, frameDropped: true }
+    }
+    throw err
+  }
+}
+
 interface OrVideoStatus {
   status: 'pending' | 'in_progress' | 'completed' | 'failed'
   unsigned_urls?: string[]
@@ -871,7 +897,7 @@ async function generateSeedFrame(job: ClipJob): Promise<string | undefined> {
     `STYLE BIBLE (absolute law): ${job.plan.style_bible}`,
     `THE FRAME: ${shot.prompt}`,
     shot.camera ? `Camera: ${shot.camera}` : '',
-    `16:9 widescreen. No text, no titles, no watermarks, no borders. This frame is the first thing the audience sees — it must read as ${job.plan.art_direction ?? 'the named medium'} and nothing else.`,
+    `16:9 widescreen. No text, no titles, no watermarks, no borders. If the frame contains a person, stage them cinematically rather than as an identifiable portrait — three-quarter turn, theatrical shadow, or distance — the character reads through wardrobe, posture, and light. This frame is the first thing the audience sees — it must read as ${job.plan.art_direction ?? 'the named medium'} and nothing else.`,
   ]
     .filter(Boolean)
     .join('\n')
@@ -883,24 +909,25 @@ async function generateSeedFrame(job: ClipJob): Promise<string | undefined> {
 export async function startJob(job: ClipJob): Promise<void> {
   const seedUrl = await generateSeedFrame(job)
   const fullPrompt = shotFullPrompt(job, 0)
-  const { orId, pollUrl } = await submitShot(
+  const { orId, pollUrl, frameDropped } = await submitShotSafe(
     fullPrompt,
     job.secondsPerShot,
     job.resolution,
     seedUrl,
     Boolean(job.plan.shots[0].dialogue)
   )
+  const seeded = seedUrl && !frameDropped
   job.shots[0] = {
     name: job.plan.shots[0].name,
     fullPrompt,
     orId,
     pollUrl,
-    frameUrl: seedUrl,
+    frameUrl: seeded ? seedUrl : undefined,
     attempts: 1,
     submittedAt: Date.now(),
     done: false,
   }
-  job.message = seedUrl
+  job.message = seeded
     ? `Master frame set — shot 1/${job.plan.shots.length}: generating…`
     : `Shot 1/${job.plan.shots.length}: generating…`
   await saveJob(job)
@@ -920,7 +947,7 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
   // shot's extracted last frame.
   const prevFrame = idx > 0 ? job.shots[idx - 1]?.frameUrl : job.shots[0]?.frameUrl
   const fullPrompt = existing?.fullPrompt ?? shotFullPrompt(job, idx)
-  const { orId, pollUrl } = await submitShot(
+  const { orId, pollUrl } = await submitShotSafe(
     fullPrompt,
     job.secondsPerShot,
     job.resolution,
@@ -1033,7 +1060,7 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
         }
         const next = job.current + 1
         const fullPrompt = shotFullPrompt(job, next, continuityBlock(omni, nano))
-        const { orId, pollUrl } = await submitShot(
+        const { orId, pollUrl } = await submitShotSafe(
           fullPrompt,
           job.secondsPerShot,
           job.resolution,
