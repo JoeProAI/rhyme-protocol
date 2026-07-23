@@ -608,7 +608,8 @@ async function submitShot(
   duration: number,
   resolution: string,
   frameUrl?: string,
-  withAudio = false
+  withAudio = false,
+  modelOverride?: string
 ): Promise<{ orId: string; pollUrl: string }> {
   const res = await fetch(`${OR_BASE}/videos`, {
     method: 'POST',
@@ -617,7 +618,7 @@ async function submitShot(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: withAudio ? SPEECH_MODEL : VIDEO_MODEL,
+      model: modelOverride ?? (withAudio ? SPEECH_MODEL : VIDEO_MODEL),
       prompt,
       duration,
       resolution,
@@ -670,6 +671,13 @@ async function submitShotSafe(
       console.warn('[clipchain] seed frame rejected by provider filter — retrying unseeded')
       const r = await submitShot(prompt, duration, resolution, undefined, withAudio)
       return { ...r, frameDropped: true }
+    }
+    if (withAudio && /Duration .* not supported/i.test(msg)) {
+      // The audio-native model caps shot length (12s) — legacy 15s films
+      // fall back to the general model rather than failing.
+      console.warn('[clipchain] speech model rejected duration — falling back to video model')
+      const r = await submitShot(prompt, duration, resolution, frameUrl, withAudio, VIDEO_MODEL)
+      return { ...r, frameDropped: false }
     }
     throw err
   }

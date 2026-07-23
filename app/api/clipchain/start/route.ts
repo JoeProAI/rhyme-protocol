@@ -84,7 +84,7 @@ const BodySchema = z.object({
   plan: PlanSchema.optional(),
   // From /api/clipchain/audio — the soundtrack laid under the final cut.
   audioPath: z.string().max(300).optional(),
-  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
+  secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(12), z.literal(15)]).optional(),
   // Where to send the finished film. Optional — the library keeps it either way.
   email: z.string().email().max(254).optional(),
   // Draft tier renders at half rate; default stays 720p.
