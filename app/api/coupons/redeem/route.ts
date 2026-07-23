@@ -13,21 +13,31 @@ function getStripe(): Stripe | null {
   return stripeClient;
 }
 
-// Valid coupon codes (you can also create these in Stripe dashboard)
-// Format: CODE -> { tier, maxRedemptions, currentRedemptions }
-const VALID_COUPONS: Record<string, { tier: keyof typeof COUPON_TIERS; maxRedemptions: number }> = {
-  // Complex codes - harder to guess
-  'RP-BETA-X7K9M2': { tier: 'BETA_TESTER', maxRedemptions: 100 },
-  'RP-EARLY-Q4W8N3': { tier: 'EARLY_SUPPORTER', maxRedemptions: 50 },
-  'RP-VIP-Z6Y1P5': { tier: 'VIP', maxRedemptions: 10 },
-  'RP-PROD-J3H7L9': { tier: 'PRODUCER', maxRedemptions: 25 },
-  // Special codes
-  'UTOPIA26!': { tier: 'UTOPIA', maxRedemptions: 50 },
-  // Legacy codes (keep for backwards compatibility)
-  'RHYME-BETA-2026': { tier: 'BETA_TESTER', maxRedemptions: 100 },
-  'RHYME-EARLY': { tier: 'EARLY_SUPPORTER', maxRedemptions: 50 },
-  'RHYME-VIP': { tier: 'VIP', maxRedemptions: 10 },
-};
+// Coupon codes live ONLY in the COUPON_CODES env var — this repo is public,
+// so anything hardcoded here is a published cheat code. Premium tiers now
+// unlock film scale (house spend), which makes leaked codes real money.
+// Format: {"RP-PROD-a8x2k9q4": {"tier": "PRODUCER", "maxRedemptions": 25}}
+const VALID_COUPONS: Record<string, { tier: keyof typeof COUPON_TIERS; maxRedemptions: number }> = (() => {
+  try {
+    const parsed = JSON.parse(process.env.COUPON_CODES || '{}') as Record<
+      string,
+      { tier: string; maxRedemptions?: number }
+    >;
+    const out: Record<string, { tier: keyof typeof COUPON_TIERS; maxRedemptions: number }> = {};
+    for (const [code, cfg] of Object.entries(parsed)) {
+      if (cfg?.tier && cfg.tier in COUPON_TIERS) {
+        out[code.toUpperCase()] = {
+          tier: cfg.tier as keyof typeof COUPON_TIERS,
+          maxRedemptions: cfg.maxRedemptions ?? 10,
+        };
+      }
+    }
+    return out;
+  } catch {
+    console.error('[Coupon] COUPON_CODES env var is not valid JSON — no codes active');
+    return {};
+  }
+})();
 
 interface CouponRedemption {
   code: string;
