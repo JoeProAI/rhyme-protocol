@@ -11,9 +11,17 @@ import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/cl
 // the house's spend, same as the free tier.
 const FILM_SCALE_TIERS = ['VIP', 'UTOPIA', 'PRODUCER']
 
+// Redemptions before this moment came from codes that were hardcoded in this
+// public repo — leaked by definition. Only redemptions of the new env-var
+// codes (after the rotation deploy) may unlock film scale.
+const FILM_SCALE_COUPON_EPOCH = '2026-07-23T05:00:00.000Z'
+
 async function hasFilmScaleCoupon(sessionId: string): Promise<boolean> {
-  const coupon = await redisGet<{ tier?: string; expiresAt?: string }>(`coupon:user:${sessionId}`)
+  const coupon = await redisGet<{ tier?: string; expiresAt?: string; redeemedAt?: string }>(
+    `coupon:user:${sessionId}`
+  )
   if (!coupon?.tier || !FILM_SCALE_TIERS.includes(coupon.tier)) return false
+  if (!coupon.redeemedAt || coupon.redeemedAt < FILM_SCALE_COUPON_EPOCH) return false
   return !coupon.expiresAt || new Date(coupon.expiresAt) > new Date()
 }
 
