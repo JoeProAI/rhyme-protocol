@@ -811,77 +811,101 @@ async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<B
   }
 }
 
-async function concatShots(job: ClipJob): Promise<Buffer> {
+/** Token-URL upload from a local file — streams, no giant Buffer in memory. */
+async function uploadPublicFile(
+  jobId: string,
+  file: string,
+  localPath: string,
+  contentType: string
+): Promise<string> {
+  const bucket = adminStorage().bucket()
+  const path = bucketPath(jobId, file)
+  const token = randomUUID()
+  await bucket.upload(localPath, {
+    destination: path,
+    resumable: true,
+    metadata: {
+      contentType,
+      metadata: { firebaseStorageDownloadTokens: token },
+    },
+  })
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`
+}
+
+/**
+ * Assemble the final cut in ONE ffmpeg pass with shots streamed straight
+ * from storage over https and video stream-copied (never re-encoded).
+ * Film-scale cuts (25×15s ≈ 300MB+) blow the 512MB serverless /tmp if
+ * shots are downloaded and the video re-encoded — learned live, on the
+ * first full-length film. Returns the local path of the finished cut.
+ */
+async function concatShots(job: ClipJob): Promise<string> {
   const dir = join(tmpdir(), 'clipchain', job.id)
   await mkdir(dir, { recursive: true })
   const bucket = adminStorage().bucket()
-  const locals: string[] = []
+  const urls: string[] = []
   for (let i = 0; i < job.shots.length; i++) {
     const shot = job.shots[i]
     if (!shot.storagePath) throw new Error(`shot ${i + 1} missing storagePath`)
-    const local = join(dir, `shot-${i + 1}.mp4`)
-    await bucket.file(shot.storagePath).download({ destination: local })
-    locals.push(local)
+    const [u] = await bucket.file(shot.storagePath).getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 30 * 60 * 1000,
+    })
+    urls.push(u)
   }
   const listPath = join(dir, 'concat.txt')
-  await writeFile(
-    listPath,
-    locals.map((p) => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n')
-  )
+  await writeFile(listPath, urls.map((u) => `file '${u.replace(/'/g, "'\\''")}'`).join('\n'))
   const outPath = join(dir, 'final.mp4')
   const ff = await ffmpegPath()
   const talking = jobHasDialogue(job)
-  await execFileAsync(ff, [
+  const durationSec = job.shots.length * job.secondsPerShot
+  const fadeStart = Math.max(0, durationSec - 1.2)
+  const base = [
     '-hide_banner', '-loglevel', 'error',
+    '-protocol_whitelist', 'file,http,https,tcp,tls',
     '-f', 'concat', '-safe', '0', '-i', listPath,
-    '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', '24',
-    // Talking films carry per-shot dubbed audio through the cut;
-    // music films concat silent and get the track laid under after.
-    ...(talking ? ['-c:a', 'aac', '-b:a', '192k'] : ['-an']),
-    '-movflags', '+faststart', '-y', outPath,
-  ])
-
-  const cleanup: string[] = [...locals, listPath, outPath]
-  let finalPath = outPath
+  ]
 
   if (job.audioPath) {
     const audioLocal = join(dir, 'track')
     await bucket.file(job.audioPath).download({ destination: audioLocal })
-    const durationSec = job.shots.length * job.secondsPerShot
-    const fadeStart = Math.max(0, durationSec - 1.2)
-    const muxPath = join(dir, 'final-audio.mp4')
     if (talking) {
       // Music bed UNDER the dialogue: track ducked, dialogue on top.
       await execFileAsync(ff, [
-        '-hide_banner', '-loglevel', 'error',
-        '-i', outPath, '-i', audioLocal,
+        ...base,
+        '-i', audioLocal,
         '-filter_complex',
         `[1:a]volume=0.25,afade=t=out:st=${fadeStart}:d=1.2[bed];[0:a][bed]amix=inputs=2:duration=first:normalize=0[mix]`,
-        '-map', '0:v', '-map', '[mix]',
-        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-map', '0:v', '-c:v', 'copy',
+        '-map', '[mix]', '-c:a', 'aac', '-b:a', '192k',
         '-t', String(durationSec),
-        '-movflags', '+faststart', '-y', muxPath,
+        '-y', outPath,
       ])
     } else {
       // Music film: the uploaded track IS the soundtrack.
       await execFileAsync(ff, [
-        '-hide_banner', '-loglevel', 'error',
-        '-i', outPath, '-i', audioLocal,
-        '-map', '0:v', '-map', '1:a',
-        '-c:v', 'copy',
-        '-c:a', 'aac', '-b:a', '192k',
+        ...base,
+        '-i', audioLocal,
+        '-map', '0:v', '-c:v', 'copy',
+        '-map', '1:a', '-c:a', 'aac', '-b:a', '192k',
         '-af', `afade=t=out:st=${fadeStart}:d=1.2`,
         '-t', String(durationSec),
-        '-movflags', '+faststart', '-y', muxPath,
+        '-y', outPath,
       ])
     }
-    cleanup.push(audioLocal, muxPath)
-    finalPath = muxPath
+  } else if (talking) {
+    await execFileAsync(ff, [
+      ...base,
+      '-map', '0:v', '-c:v', 'copy',
+      '-map', '0:a', '-c:a', 'aac', '-b:a', '192k',
+      '-y', outPath,
+    ])
+  } else {
+    await execFileAsync(ff, [...base, '-c:v', 'copy', '-an', '-y', outPath])
   }
 
-  const buf = await readFile(finalPath)
-  await Promise.all(cleanup.map((p) => unlink(p).catch(() => {})))
-  return buf
+  return outPath
 }
 
 // ------------------------------------------------------------- the tick
@@ -1116,8 +1140,9 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
     }
 
     if (job.status === 'assembling') {
-      const finalBuf = await concatShots(job)
-      job.videoUrl = await uploadPublic(job.id, 'final.mp4', finalBuf, 'video/mp4')
+      const finalPath = await concatShots(job)
+      job.videoUrl = await uploadPublicFile(job.id, 'final.mp4', finalPath, 'video/mp4')
+      await unlink(finalPath).catch(() => {})
       job.status = 'complete'
       job.message = 'Complete'
       await saveJob(job) // the clip is delivered no matter what billing does
