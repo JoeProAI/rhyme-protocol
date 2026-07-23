@@ -5,6 +5,20 @@ import { loadJob, retakeShot, publicJob } from '@/lib/clipchain/engine'
 import { checkUsage, trackUsage, getPaymentInfo } from '@/lib/usage-system'
 import { getBalanceCents } from '@/lib/clipchain/credits'
 import { rateForResolution } from '@/lib/clipchain/pricing'
+import { redisGet } from '@/lib/redis'
+
+// Mirrors the start route's invite rule: premium coupon sessions polish
+// their house films on the house. (Same epoch cutoff as the start gate.)
+const FILM_SCALE_TIERS = ['VIP', 'UTOPIA', 'PRODUCER']
+const FILM_SCALE_COUPON_EPOCH = '2026-07-23T05:00:00.000Z'
+async function hasFilmScaleCoupon(sessionId: string): Promise<boolean> {
+  const coupon = await redisGet<{ tier?: string; expiresAt?: string; redeemedAt?: string }>(
+    `coupon:user:${sessionId}`
+  )
+  if (!coupon?.tier || !FILM_SCALE_TIERS.includes(coupon.tier)) return false
+  if (!coupon.redeemedAt || coupon.redeemedAt < FILM_SCALE_COUPON_EPOCH) return false
+  return !coupon.expiresAt || new Date(coupon.expiresAt) > new Date()
+}
 
 export const runtime = 'nodejs'
 // May regenerate a master frame and re-derive a seed frame before submitting.
@@ -57,7 +71,9 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
     const payment = await getPaymentInfo(job.sessionId)
     const balance = await getBalanceCents(job.sessionId)
     let requiresPayment = false
-    if (balance >= priceCents || payment.has_payment) {
+    if (await hasFilmScaleCoupon(job.sessionId)) {
+      requiresPayment = false
+    } else if (balance >= priceCents || payment.has_payment) {
       requiresPayment = true
     } else {
       const usage = await checkUsage(job.sessionId, 'clip_generations')

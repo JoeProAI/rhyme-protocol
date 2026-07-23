@@ -957,13 +957,20 @@ async function concatShots(job: ClipJob): Promise<string> {
 
 function shotFullPrompt(job: ClipJob, index: number, continuity?: string): string {
   const shot = job.plan.shots[index]
+  // Seedance's speech trigger is the quoted line itself — it must LEAD the
+  // prompt in plain canonical form, not sit buried under style direction.
+  const spoken =
+    shot.dialogue && !shot.dialogue.offscreen
+      ? `${shot.dialogue.character}${shot.dialogue.voiceHint ? ` (${shot.dialogue.voiceHint})` : ''} says: "${shot.dialogue.line}"`
+      : ''
   return [
+    spoken,
     shot.prompt,
     shot.window ? `SONG WINDOW (this shot's beat in the track): ${shot.window}` : '',
     shot.dialogue
       ? shot.dialogue.offscreen
         ? `NARRATION (offscreen — no one on camera mouths these words): "${shot.dialogue.line}"`
-        : `DIALOGUE with audible speech: ${shot.dialogue.character} speaks these exact words aloud on camera${shot.dialogue.voiceHint ? `, ${shot.dialogue.voiceHint}` : ''}, face clearly visible while speaking, natural mouth articulation matched to the words: "${shot.dialogue.line}"`
+        : `The character speaks the quoted line aloud with audible voice and natural lip-sync.`
       : '',
     `Camera: ${shot.camera ?? 'as specified in the style bible'}`,
     job.plan.signature ? `SIGNATURE MOTIF (must appear): ${job.plan.signature}` : '',
