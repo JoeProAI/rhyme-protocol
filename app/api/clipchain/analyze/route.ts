@@ -30,8 +30,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ track })
   } catch (error) {
     console.error('[clipchain] analyze failed:', error)
+    const cause = error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300)
     return NextResponse.json(
-      { error: 'Could not analyze the track. Try again in a minute.' },
+      { error: 'Could not analyze the track. Try again in a minute.', cause },
       { status: 500 }
     )
   }
