@@ -1459,6 +1459,63 @@ export async function retakeShot(
   return job
 }
 
+/**
+ * The Foley pass: lay generated ambience into an existing shot WITHOUT
+ * touching its video. Mixes over any audio already there (or fills
+ * silence), re-uploads the shot in place. Caller flips the job to
+ * 'assembling' afterward so the cut rebuilds with the new sound.
+ */
+export async function foleyShot(job: ClipJob, index: number, sfxPrompt: string): Promise<void> {
+  const shot = job.shots[index]
+  if (!shot?.storagePath) throw new Error(`shot ${index + 1} has no stored video`)
+  const dir = join(tmpdir(), 'clipchain')
+  await mkdir(dir, { recursive: true })
+  const vidPath = join(dir, `${job.id}-foley${index}.mp4`)
+  const sfxPath = join(dir, `${job.id}-foley${index}.mp3`)
+  const outPath = join(dir, `${job.id}-foley${index}-out.mp4`)
+  const cleanup = [vidPath, sfxPath, outPath]
+  try {
+    const bucket = adminStorage().bucket()
+    await bucket.file(shot.storagePath).download({ destination: vidPath })
+    const { generateSfx } = await import('@/lib/clipchain/voice')
+    const sfxBuf = await generateSfx(sfxPrompt, job.secondsPerShot)
+    await writeFile(sfxPath, sfxBuf)
+    const ff = await ffmpegPath()
+    const dur = job.secondsPerShot
+    try {
+      // Mix ambience under whatever sound the shot already has.
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', vidPath, '-i', sfxPath,
+        '-filter_complex',
+        '[1:a]volume=0.7,apad[sfx];[0:a][sfx]amix=inputs=2:duration=first:normalize=0,apad[mix]',
+        '-map', '0:v', '-c:v', 'copy',
+        '-map', '[mix]', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+        '-t', String(dur),
+        '-y', outPath,
+      ])
+    } catch {
+      // Shot was silent — the ambience becomes its soundtrack.
+      await execFileAsync(ff, [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', vidPath, '-i', sfxPath,
+        '-map', '0:v', '-map', '1:a',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+        '-af', 'apad',
+        '-t', String(dur),
+        '-y', outPath,
+      ])
+    }
+    await bucket.upload(outPath, {
+      destination: shot.storagePath,
+      resumable: false,
+      metadata: { contentType: 'video/mp4' },
+    })
+  } finally {
+    await Promise.all(cleanup.map((p) => unlink(p).catch(() => {})))
+  }
+}
+
 /** Public projection — everything the UI needs, none of the internals. */
 export function publicJob(job: ClipJob) {
   return {

@@ -40,6 +40,26 @@ export async function listVoices(): Promise<CastVoice[]> {
 
 const TTS_MODEL = process.env.CLIPCHAIN_TTS_MODEL ?? 'eleven_multilingual_v2'
 
+/** Generate ambience/sound-effects for the Foley pass. Returns MP3 bytes. */
+export async function generateSfx(text: string, durationSeconds: number): Promise<Buffer> {
+  const res = await fetch(`${EL_BASE}/sound-generation`, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': elKey(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text,
+      duration_seconds: Math.min(22, Math.max(1, durationSeconds)),
+      prompt_influence: 0.4,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`ElevenLabs SFX ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  }
+  return Buffer.from(await res.arrayBuffer())
+}
+
 /** Render one line in a cast voice. Returns MP3 bytes. */
 export async function ttsLine(voiceId: string, line: string): Promise<Buffer> {
   const res = await fetch(`${EL_BASE}/text-to-speech/${encodeURIComponent(voiceId)}`, {
