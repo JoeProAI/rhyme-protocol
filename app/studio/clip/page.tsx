@@ -213,11 +213,11 @@ export default function ClipStudioPage() {
                   {shared ? 'BONUS UNLOCKED — TRY AGAIN' : 'SHARE TO X → +2 CLIPS'}
                 </button>
                 <a
-                  href="/add-card"
+                  href="/studio/board"
                   className="rounded-lg px-4 py-2 text-xs font-bold text-black"
                   style={{ background: ACCENT }}
                 >
-                  ADD CARD → $1.75/SHOT, PAY ON DELIVERY
+                  TOP UP CREDITS ON THE BOARD →
                 </a>
               </div>
             </motion.div>

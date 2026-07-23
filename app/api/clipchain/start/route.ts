@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { checkUsage, trackUsage, generateSessionId, getPaymentInfo } from '@/lib/usage-system'
 import { redisGet } from '@/lib/redis'
+import { getBalanceCents } from '@/lib/clipchain/credits'
+import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
 import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/clipchain/engine'
 
 // Owner-approved (Joe, 2026-07-23): premium coupon tiers unlock film scale
@@ -110,18 +112,26 @@ export async function POST(req: NextRequest) {
 
     const shotCount = editedPlan?.shots.length ?? SHOTS
     const filmScale = shotCount > FREE_MAX_SHOTS || secondsPerShot > FREE_MAX_SECONDS
+    // No card required: coupon invites run on the house, everyone else
+    // prepays a balance that only delivery deducts.
+    let requiresPayment = false
     if (filmScale) {
-      const payment = await getPaymentInfo(sessionId)
-      if (!payment.has_payment && !(await hasFilmScaleCoupon(sessionId))) {
-        return NextResponse.json(
-          {
-            error: 'limit',
-            message: `Film scale (${shotCount} shots × ${secondsPerShot}s) needs a card on file — billed per delivered clip, never for failed runs.`,
-            upgrade_url: '/add-card',
-            shareType: 'clip_generations',
-          },
-          { status: 402 }
-        )
+      const priceCents = shotCount * secondsPerShot * PRICE_PER_SECOND_CENTS
+      if (!(await hasFilmScaleCoupon(sessionId))) {
+        const payment = await getPaymentInfo(sessionId)
+        const balance = await getBalanceCents(sessionId)
+        if (!payment.has_payment && balance < priceCents) {
+          return NextResponse.json(
+            {
+              error: 'limit',
+              message: `This film (${shotCount} shots × ${secondsPerShot}s) is $${(priceCents / 100).toFixed(2)} flat. Top up credits to run it — spent only on delivery, never on failed runs. Balance: $${(balance / 100).toFixed(2)}.`,
+              upgrade_url: '/studio/board',
+              shareType: 'clip_generations',
+            },
+            { status: 402 }
+          )
+        }
+        requiresPayment = true
       }
     }
 
@@ -156,6 +166,7 @@ export async function POST(req: NextRequest) {
       resolution: RESOLUTION,
       audioPath,
       email,
+      requiresPayment,
       totalCost: 0,
     }
 

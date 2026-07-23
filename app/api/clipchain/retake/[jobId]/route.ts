@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { loadJob, retakeShot, publicJob } from '@/lib/clipchain/engine'
 import { checkUsage, trackUsage, getPaymentInfo } from '@/lib/usage-system'
+import { getBalanceCents } from '@/lib/clipchain/credits'
+import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
 
 export const runtime = 'nodejs'
 // May regenerate a master frame and re-derive a seed frame before submitting.
@@ -46,12 +48,26 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
       )
     }
 
+    // Prepaid first: retakes deduct from the balance on redelivery. Legacy
+    // card sessions bill as before. Neither → a daily clip allowance per
+    // retake so the reshoot loop can't become a free farm.
+    const retakeShots =
+      parsed.data.mode === 'rechain' ? job.plan.shots.length - (parsed.data.shot - 1) : 1
+    const priceCents = retakeShots * job.secondsPerShot * PRICE_PER_SECOND_CENTS
     const payment = await getPaymentInfo(job.sessionId)
-    if (!payment.has_payment) {
+    const balance = await getBalanceCents(job.sessionId)
+    let requiresPayment = false
+    if (balance >= priceCents || payment.has_payment) {
+      requiresPayment = true
+    } else {
       const usage = await checkUsage(job.sessionId, 'clip_generations')
       if (!usage.allowed) {
         return NextResponse.json(
-          { error: 'limit', message: usage.reason ?? 'Daily limit reached.', shareType: 'clip_generations' },
+          {
+            error: 'limit',
+            message: `This retake is $${(priceCents / 100).toFixed(2)} flat — top up credits, or ${usage.reason ?? 'come back tomorrow for your free clip.'}`,
+            shareType: 'clip_generations',
+          },
           { status: 402 }
         )
       }
@@ -63,7 +79,8 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
       parsed.data.shot - 1,
       parsed.data.mode,
       parsed.data.prompt,
-      parsed.data.camera
+      parsed.data.camera,
+      requiresPayment
     )
     return NextResponse.json(publicJob(after))
   } catch (error) {

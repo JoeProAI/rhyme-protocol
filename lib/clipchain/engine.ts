@@ -22,6 +22,8 @@ import { redisGet, redisSet } from '@/lib/redis'
 import { adminStorage } from '@/lib/firebase-admin'
 import { trackSpend, refundUsage, trackUsage } from '@/lib/usage-system'
 import { chargeForDeliveredClip } from '@/lib/clipchain/billing'
+import { deductBalanceCents } from '@/lib/clipchain/credits'
+import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
 import { saveClip } from '@/lib/clipchain/library'
 import { emailClip } from '@/lib/clipchain/deliver'
 import { ttsLine } from '@/lib/clipchain/voice'
@@ -105,6 +107,9 @@ export interface ClipJob {
   charged?: boolean
   chargedUsd?: number
   billingError?: string
+  // Set at gate time: this job owes money on delivery (film scale paid via
+  // balance or legacy card). Coupon invites and free-tier clips stay false.
+  requiresPayment?: boolean
   // Retake bookkeeping: how many shots the NEXT delivery bills for, and a
   // sequence number so each retake charge is its own idempotent payment.
   billableShots?: number
@@ -1162,21 +1167,30 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       // Pay-per-delivery: card-on-file sessions are charged now, free-tier
       // sessions are not. Idempotent at the Stripe layer (key = jobId), so
       // a re-entered tick cannot double-charge.
-      if (!job.charged) {
-        const bill = await chargeForDeliveredClip(
-          job.sessionId,
-          job.id,
-          job.billableShots ?? job.shots.length,
-          job.secondsPerShot,
-          job.retakeSeq ?? 0
-        )
-        if (bill.charged) {
+      if (!job.charged && job.requiresPayment) {
+        const cents =
+          (job.billableShots ?? job.shots.length) * job.secondsPerShot * PRICE_PER_SECOND_CENTS
+        if (await deductBalanceCents(job.sessionId, cents)) {
+          // Prepaid path: balance spent on delivery, nothing stored, no card.
           job.charged = true
-          job.chargedUsd = bill.amountUsd
-        } else if (bill.error) {
-          // Deliver anyway — a billing hiccup is our problem, not the artist's.
-          job.billingError = bill.error
-          console.warn(`[clipchain] billing failed for ${job.id}:`, bill.error)
+          job.chargedUsd = cents / 100
+        } else {
+          // Legacy card-on-file fallback.
+          const bill = await chargeForDeliveredClip(
+            job.sessionId,
+            job.id,
+            job.billableShots ?? job.shots.length,
+            job.secondsPerShot,
+            job.retakeSeq ?? 0
+          )
+          if (bill.charged) {
+            job.charged = true
+            job.chargedUsd = bill.amountUsd
+          } else {
+            // Deliver anyway — a billing gap is our problem, not the artist's.
+            job.billingError = bill.error ?? 'insufficient credits at delivery'
+            console.warn(`[clipchain] billing failed for ${job.id}:`, job.billingError)
+          }
         }
       }
 
@@ -1303,7 +1317,8 @@ export async function retakeShot(
   index: number,
   mode: 'keep' | 'rechain',
   promptEdit?: string,
-  cameraEdit?: string
+  cameraEdit?: string,
+  requiresPayment?: boolean
 ): Promise<ClipJob> {
   if (job.status !== 'complete') throw new Error('Only completed films can be retaken')
   if (index < 0 || index >= job.plan.shots.length) throw new Error('No such shot')
@@ -1367,6 +1382,7 @@ export async function retakeShot(
   job.retakeSeq = (job.retakeSeq ?? 0) + 1
   job.billableShots = mode === 'rechain' ? job.plan.shots.length - index : 1
   job.charged = false
+  if (requiresPayment !== undefined) job.requiresPayment = requiresPayment
   job.message = `Retake — shot ${index + 1}/${job.plan.shots.length}: generating…`
   await saveJob(job)
   await registerActive(job.id).catch(() => {})
