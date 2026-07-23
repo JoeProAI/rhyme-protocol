@@ -4,8 +4,16 @@ import { z } from 'zod'
 import { checkUsage, trackUsage, generateSessionId, getPaymentInfo } from '@/lib/usage-system'
 import { redisGet, redisSet } from '@/lib/redis'
 import { getBalanceCents } from '@/lib/clipchain/credits'
-import { PRICE_PER_SECOND_CENTS } from '@/lib/clipchain/pricing'
-import { storyboard, startJob, saveJob, publicJob, type ClipJob } from '@/lib/clipchain/engine'
+import { rateForResolution } from '@/lib/clipchain/pricing'
+import {
+  storyboard,
+  startJob,
+  saveJob,
+  publicJob,
+  loadJob,
+  deriveFinalFrame,
+  type ClipJob,
+} from '@/lib/clipchain/engine'
 
 // Owner-approved (Joe, 2026-07-23): premium coupon tiers unlock film scale
 // without a card on file — invite-grade codes for artists the house backs.
@@ -77,6 +85,10 @@ const BodySchema = z.object({
   secondsPerShot: z.union([z.literal(5), z.literal(10), z.literal(15)]).optional(),
   // Where to send the finished film. Optional — the library keeps it either way.
   email: z.string().email().max(254).optional(),
+  // Draft tier renders at half rate; default stays 720p.
+  resolution: z.enum(['480p', '720p']).optional(),
+  // Chapter chaining: seed shot 1 from this completed job's closing frame.
+  seedFromJobId: z.string().max(80).optional(),
 })
 
 const SHOTS = 3
@@ -101,7 +113,16 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { prompt, style, plan: editedPlan, audioPath, secondsPerShot = SECONDS_PER_SHOT, email } = parsed.data
+    const {
+      prompt,
+      style,
+      plan: editedPlan,
+      audioPath,
+      secondsPerShot = SECONDS_PER_SHOT,
+      email,
+      resolution = RESOLUTION,
+      seedFromJobId,
+    } = parsed.data
 
     const cookieStore = cookies()
     let sessionId = cookieStore.get('anon_session')?.value
@@ -119,7 +140,7 @@ export async function POST(req: NextRequest) {
     // else prepays a balance that only delivery deducts.
     let requiresPayment = false
     if (filmScale) {
-      const priceCents = shotCount * secondsPerShot * PRICE_PER_SECOND_CENTS
+      const priceCents = shotCount * secondsPerShot * rateForResolution(resolution)
       let onHouse = false
       if (await hasFilmScaleCoupon(sessionId)) {
         // Invites are generous, not infinite: a few films on the house,
@@ -163,6 +184,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Chapter chaining: pull the previous chapter's closing frame as this
+    // film's opening seed. Session-gated — you can only chain your own films.
+    let seedFrameUrl: string | undefined
+    if (seedFromJobId) {
+      const prev = await loadJob(seedFromJobId)
+      if (!prev || prev.sessionId !== sessionId || prev.status !== 'complete') {
+        return NextResponse.json(
+          { error: 'seedFromJobId must be your own completed film' },
+          { status: 400 }
+        )
+      }
+      seedFrameUrl = await deriveFinalFrame(prev)
+    }
+
     const plan = editedPlan ?? (await storyboard(prompt, style, SHOTS, SECONDS_PER_SHOT))
 
     const job: ClipJob = {
@@ -177,9 +212,10 @@ export async function POST(req: NextRequest) {
       shots: [],
       current: 0,
       secondsPerShot,
-      resolution: RESOLUTION,
+      resolution,
       audioPath,
       email,
+      seedFrameUrl,
       requiresPayment,
       totalCost: 0,
     }

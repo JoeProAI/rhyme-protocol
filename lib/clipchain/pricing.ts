@@ -11,6 +11,11 @@ export const PRICE_PER_SECOND_CENTS = Number(
   process.env.CLIPCHAIN_PRICE_PER_SECOND_CENTS || '35'
 )
 
+/** 480p is ~45% of 720p's pixels — the draft tier bills at half rate. */
+export function rateForResolution(resolution: string): number {
+  return resolution === '480p' ? Math.round(PRICE_PER_SECOND_CENTS / 2) : PRICE_PER_SECOND_CENTS
+}
+
 export interface ClipProduct {
   id: string
   label: string
