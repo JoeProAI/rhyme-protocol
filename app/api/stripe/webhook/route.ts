@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { setPaymentStatus } from '@/lib/usage-system'
+import { addBalanceCents, claimStripeEvent } from '@/lib/clipchain/credits'
 
 const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -47,13 +48,21 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        
-        // Get the anonymous session ID from metadata
         const anonSessionId = session.metadata?.anon_session_id
+
+        // Prepaid top-up: credit the balance exactly once per event.
+        if (session.mode === 'payment' && anonSessionId && session.metadata?.credit_cents) {
+          if (await claimStripeEvent(event.id)) {
+            const cents = Number(session.metadata.credit_cents)
+            const next = await addBalanceCents(anonSessionId, cents)
+            console.log(`[credits] +${cents}c for ${anonSessionId.substring(0, 20)}… balance ${next}c`)
+          }
+          break
+        }
+
+        // Legacy card-on-file setup flow.
         const customerId = session.customer as string
-        
         if (anonSessionId && customerId) {
-          // Mark this user as having a payment method
           await setPaymentStatus(anonSessionId, customerId)
           console.log(`Payment method added for session: ${anonSessionId.substring(0, 20)}...`)
         }

@@ -126,6 +126,8 @@ export default function PipelineBoardPage() {
   const [rateCents, setRateCents] = useState(FALLBACK_RATE_CENTS)
   const [products, setProducts] = useState<ClipProduct[]>([])
   const [voices, setVoices] = useState<Voice[]>([])
+  const [balanceCents, setBalanceCents] = useState(0)
+  const [toppingUp, setToppingUp] = useState(false)
   const [plan, setPlan] = useState<ClipPlan | null>(null)
   const [job, setJob] = useState<JobView | null>(null)
   const [drafting, setDrafting] = useState(false)
@@ -150,7 +152,33 @@ export default function PipelineBoardPage() {
         if (Array.isArray(d?.products)) setProducts(d.products)
       })
       .catch(() => {})
+    fetch('/api/credits')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (typeof d?.balanceCents === 'number') setBalanceCents(d.balanceCents)
+      })
+      .catch(() => {})
   }, [])
+
+  // Buy in — one-time checkout, nothing stored, balance spends on delivery.
+  const topUp = async (amountCents: number) => {
+    if (toppingUp) return
+    setToppingUp(true)
+    setErrorMessage('')
+    try {
+      const res = await fetch('/api/credits/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountCents }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Checkout unavailable')
+      window.location.href = data.url
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Checkout unavailable')
+      setToppingUp(false)
+    }
+  }
 
   const flatPrice = (shots: number, seconds: number) =>
     ((shots * seconds * rateCents) / 100).toFixed(2)
@@ -629,8 +657,19 @@ export default function PipelineBoardPage() {
             </div>
             {products.length > 0 && (
               <div className="mt-4">
-                <div className="mb-2 font-mono text-[10px] tracking-[0.25em] text-zinc-500">
-                  FLAT PRICES — TRACK SEEDANCE COST DOWN
+                <div className="mb-2 flex flex-wrap items-center gap-3 font-mono text-[10px] tracking-[0.25em] text-zinc-500">
+                  <span>FLAT PRICES — TRACK SEEDANCE COST DOWN</span>
+                  <span style={{ color: ACCENT }}>
+                    BALANCE ${(balanceCents / 100).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => topUp(2500)}
+                    disabled={toppingUp}
+                    className="rounded border px-2 py-0.5 tracking-normal transition focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:opacity-50"
+                    style={{ borderColor: ACCENT, color: ACCENT }}
+                  >
+                    {toppingUp ? 'OPENING…' : '+ TOP UP'}
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {products.map((p) => {
@@ -1190,13 +1229,20 @@ export default function PipelineBoardPage() {
                 >
                   {shared ? 'BONUS UNLOCKED — TRY AGAIN' : 'SHARE TO X → +2 CLIPS'}
                 </button>
-                <a
-                  href="/add-card"
-                  className="rounded-lg px-4 py-2 text-xs font-bold text-black focus-visible:ring-2 focus-visible:ring-zinc-300"
-                  style={{ background: ACCENT }}
-                >
-                  ADD CARD → ${(rateCents / 100).toFixed(2)}/SECOND, PAY ON DELIVERY
-                </a>
+                {[1000, 2500, 6500].map((cents) => (
+                  <button
+                    key={cents}
+                    onClick={() => topUp(cents)}
+                    disabled={toppingUp}
+                    className="rounded-lg px-4 py-2 text-xs font-bold text-black focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:opacity-50"
+                    style={{ background: ACCENT }}
+                  >
+                    TOP UP ${cents / 100}
+                  </button>
+                ))}
+                <span className="text-[10px] text-zinc-500">
+                  no card stored · spent only on delivered films
+                </span>
                 <button
                   onClick={() => setGateMessage('')}
                   className="text-xs text-zinc-500 underline decoration-zinc-700 underline-offset-2"
