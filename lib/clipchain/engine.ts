@@ -105,6 +105,10 @@ export interface ClipJob {
   charged?: boolean
   chargedUsd?: number
   billingError?: string
+  // Retake bookkeeping: how many shots the NEXT delivery bills for, and a
+  // sequence number so each retake charge is its own idempotent payment.
+  billableShots?: number
+  retakeSeq?: number
   error?: string
 }
 
@@ -816,11 +820,14 @@ async function uploadPublicFile(
   jobId: string,
   file: string,
   localPath: string,
-  contentType: string
+  contentType: string,
+  // Reuse a token on re-upload so previously shared links keep working
+  // (retake redeliveries overwrite final.mp4 in place).
+  reuseToken?: string
 ): Promise<string> {
   const bucket = adminStorage().bucket()
   const path = bucketPath(jobId, file)
-  const token = randomUUID()
+  const token = reuseToken ?? randomUUID()
   await bucket.upload(localPath, {
     destination: path,
     resumable: true,
@@ -1086,8 +1093,12 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
       shot.storagePath = bucketPath(job.id, shotFile)
       shot.done = true
 
-      const isLast = job.current === job.plan.shots.length - 1
-      if (!isLast) {
+      // Chain forward only while shots remain undone. A keep-downstream
+      // retake finishes its one shot and drops straight to assembly.
+      const allDone = job.plan.shots.every(
+        (_, idx) => idx === job.current || job.shots[idx]?.done
+      )
+      if (!allDone) {
         // Frame → analyzers → next shot submit
         job.message = `Shot ${job.current + 1} done — analyzing continuity…`
         await saveJob(job)
@@ -1141,7 +1152,8 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
 
     if (job.status === 'assembling') {
       const finalPath = await concatShots(job)
-      job.videoUrl = await uploadPublicFile(job.id, 'final.mp4', finalPath, 'video/mp4')
+      const priorToken = job.videoUrl?.match(/[?&]token=([0-9a-f-]+)/)?.[1]
+      job.videoUrl = await uploadPublicFile(job.id, 'final.mp4', finalPath, 'video/mp4', priorToken)
       await unlink(finalPath).catch(() => {})
       job.status = 'complete'
       job.message = 'Complete'
@@ -1154,8 +1166,9 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
         const bill = await chargeForDeliveredClip(
           job.sessionId,
           job.id,
-          job.shots.length,
-          job.secondsPerShot
+          job.billableShots ?? job.shots.length,
+          job.secondsPerShot,
+          job.retakeSeq ?? 0
         )
         if (bill.charged) {
           job.charged = true
@@ -1270,6 +1283,91 @@ export async function resumeJob(job: ClipJob): Promise<ClipJob> {
   await resubmitCurrentShot(job, 'resumed by user')
   job.status = 'generating'
   job.message = `Resumed — shot ${i + 1}/${job.plan.shots.length}: generating…`
+  await saveJob(job)
+  await registerActive(job.id).catch(() => {})
+  return job
+}
+
+/**
+ * The editing room: regenerate one shot of a COMPLETED film by taste.
+ * mode 'keep'    — retake this shot only; downstream stays (cheap, accepts
+ *                  a soft cut at the next joint since its seed frame changed).
+ * mode 'rechain' — retake this shot and regenerate everything after it,
+ *                  re-seeded shot by shot (full continuity, costs the rest).
+ * Old shot spend moves to wastedCost; the redelivery bills only the retaken
+ * shots under a fresh idempotency sequence. final.mp4 reassembles under the
+ * same token, so shared links keep working.
+ */
+export async function retakeShot(
+  job: ClipJob,
+  index: number,
+  mode: 'keep' | 'rechain',
+  promptEdit?: string,
+  cameraEdit?: string
+): Promise<ClipJob> {
+  if (job.status !== 'complete') throw new Error('Only completed films can be retaken')
+  if (index < 0 || index >= job.plan.shots.length) throw new Error('No such shot')
+
+  if (promptEdit) job.plan.shots[index].prompt = promptEdit
+  if (cameraEdit) job.plan.shots[index].camera = cameraEdit
+
+  const clearShot = (i: number) => {
+    const old = job.shots[i]
+    if (old?.cost) job.wastedCost = (job.wastedCost ?? 0) + old.cost
+    job.shots[i] = {
+      name: job.plan.shots[i].name,
+      attempts: 0,
+      done: false,
+    }
+  }
+  clearShot(index)
+  if (mode === 'rechain') {
+    for (let j = index + 1; j < job.plan.shots.length; j++) clearShot(j)
+  }
+
+  // Seed: previous shot's closing frame (re-derived from storage if the
+  // record lost it), or a fresh master frame for a shot-1 retake.
+  let seedUrl: string | undefined
+  if (index > 0) {
+    const prev = job.shots[index - 1]
+    seedUrl = prev?.frameUrl
+    if (!seedUrl && prev?.storagePath) {
+      const [buf] = await adminStorage().bucket().file(prev.storagePath).download()
+      const frameBuf = await extractLastFrame(Buffer.from(buf), job.id, index)
+      seedUrl = await uploadPublic(job.id, `frame-${index}.jpg`, frameBuf, 'image/jpeg')
+      if (prev) prev.frameUrl = seedUrl
+    }
+  } else {
+    seedUrl = await generateSeedFrame(job)
+  }
+
+  const fullPrompt = shotFullPrompt(job, index)
+  const { orId, pollUrl } = await submitShotSafe(
+    fullPrompt,
+    job.secondsPerShot,
+    job.resolution,
+    seedUrl,
+    Boolean(job.plan.shots[index].dialogue)
+  )
+  job.shots[index] = {
+    name: job.plan.shots[index].name,
+    fullPrompt,
+    orId,
+    pollUrl,
+    frameUrl: index === 0 ? seedUrl : undefined,
+    attempts: 1,
+    submittedAt: Date.now(),
+    done: false,
+  }
+
+  job.current = index
+  job.status = 'generating'
+  job.tickErrors = 0
+  job.error = undefined
+  job.retakeSeq = (job.retakeSeq ?? 0) + 1
+  job.billableShots = mode === 'rechain' ? job.plan.shots.length - index : 1
+  job.charged = false
+  job.message = `Retake — shot ${index + 1}/${job.plan.shots.length}: generating…`
   await saveJob(job)
   await registerActive(job.id).catch(() => {})
   return job

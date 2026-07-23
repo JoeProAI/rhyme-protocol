@@ -24,8 +24,13 @@ const key = (sessionId: string) => `clipchain:library:${sessionId}`
 
 export async function saveClip(sessionId: string, clip: LibraryClip): Promise<void> {
   const list = (await redisGet<LibraryClip[]>(key(sessionId))) ?? []
-  if (list.some((c) => c.jobId === clip.jobId)) return
-  list.unshift(clip)
+  const existing = list.findIndex((c) => c.jobId === clip.jobId)
+  if (existing !== -1) {
+    // Retake redelivery: refresh the entry in place, keep its position.
+    list[existing] = { ...list[existing], ...clip }
+  } else {
+    list.unshift(clip)
+  }
   await redisSet(key(sessionId), list.slice(0, MAX_CLIPS))
 }
 
