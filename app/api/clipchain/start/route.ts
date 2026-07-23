@@ -57,6 +57,8 @@ const PlanSchema = z.object({
           .object({
             character: z.string().min(1).max(60),
             line: z.string().min(1).max(300),
+            offscreen: z.boolean().optional(),
+            voiceHint: z.string().max(120).optional(),
           })
           .optional(),
       })

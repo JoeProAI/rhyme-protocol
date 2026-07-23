@@ -38,8 +38,10 @@ export interface PlannedShot {
   camera?: string
   // Timed song window this shot covers, e.g. "0:45–1:00 · CHORUS 1".
   window?: string
-  // Dub mode: one spoken line per shot, delivered on camera.
-  dialogue?: { character: string; line: string }
+  // One spoken line per shot. Onscreen lines keep Seedance's native speech
+  // (mouth and voice generated together — perfect sync). offscreen marks
+  // narration: generated silent, ElevenLabs voice laid over.
+  dialogue?: { character: string; line: string; offscreen?: boolean; voiceHint?: string }
 }
 
 export interface CastMember {
@@ -765,6 +767,12 @@ async function extractLastFrame(videoBuf: Buffer, jobId: string, shotIndex: numb
 
 const jobHasDialogue = (job: ClipJob) => job.plan.shots.some((s) => s.dialogue)
 
+// Onscreen lines generate WITH Seedance audio — mouth and voice are born
+// together, so sync is perfect by construction. Offscreen narration
+// generates silent and gets the cast voice laid over.
+const wantsNativeSpeech = (shot: PlannedShot) =>
+  Boolean(shot.dialogue && !shot.dialogue.offscreen)
+
 function voiceFor(job: ClipJob, character: string): string | undefined {
   return job.plan.cast?.find(
     (c) => c.character.trim().toLowerCase() === character.trim().toLowerCase()
@@ -789,9 +797,31 @@ async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<B
   const cleanup = [vidPath, outPath]
 
   try {
-    const voiceId = shot.dialogue ? voiceFor(job, shot.dialogue.character) : undefined
-    if (shot.dialogue && voiceId) {
-      const lineBuf = await ttsLine(voiceId, shot.dialogue.line)
+    const dlg = shot.dialogue
+    if (dlg && !dlg.offscreen) {
+      // Onscreen speech: KEEP Seedance's native audio — the mouth and the
+      // voice were generated together, so sync is perfect. Just normalize
+      // the stream so concat sees uniform aac.
+      try {
+        await execFileAsync(ff, [
+          '-hide_banner', '-loglevel', 'error',
+          '-i', vidPath,
+          '-map', '0:v', '-map', '0:a',
+          '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+          '-af', 'apad',
+          '-t', String(dur),
+          '-y', outPath,
+        ])
+        return await readFile(outPath)
+      } catch {
+        // Generation came back without an audio stream — silent bed below.
+      }
+    }
+    const voiceId = dlg?.offscreen ? voiceFor(job, dlg.character) : undefined
+    if (dlg && voiceId) {
+      // Offscreen narration over silent footage: consistent cast voice,
+      // no mouth on camera to disagree with. Small lead-in breath.
+      const lineBuf = await ttsLine(voiceId, dlg.line)
       const linePath = join(dir, `${job.id}-dub${index}.mp3`)
       cleanup.push(linePath)
       await writeFile(linePath, lineBuf)
@@ -800,7 +830,7 @@ async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<B
         '-i', vidPath, '-i', linePath,
         '-map', '0:v', '-map', '1:a',
         '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
-        '-af', 'apad',
+        '-af', 'adelay=400|400,apad',
         '-t', String(dur),
         '-y', outPath,
       ])
@@ -931,7 +961,9 @@ function shotFullPrompt(job: ClipJob, index: number, continuity?: string): strin
     shot.prompt,
     shot.window ? `SONG WINDOW (this shot's beat in the track): ${shot.window}` : '',
     shot.dialogue
-      ? `DIALOGUE: ${shot.dialogue.character} speaks these exact words on camera, face clearly visible and near-frontal while speaking, natural mouth articulation: "${shot.dialogue.line}"`
+      ? shot.dialogue.offscreen
+        ? `NARRATION (offscreen — no one on camera mouths these words): "${shot.dialogue.line}"`
+        : `DIALOGUE with audible speech: ${shot.dialogue.character} speaks these exact words aloud on camera${shot.dialogue.voiceHint ? `, ${shot.dialogue.voiceHint}` : ''}, face clearly visible while speaking, natural mouth articulation matched to the words: "${shot.dialogue.line}"`
       : '',
     `Camera: ${shot.camera ?? 'as specified in the style bible'}`,
     job.plan.signature ? `SIGNATURE MOTIF (must appear): ${job.plan.signature}` : '',
@@ -991,7 +1023,7 @@ export async function startJob(job: ClipJob): Promise<void> {
     job.secondsPerShot,
     job.resolution,
     seedUrl,
-    Boolean(job.plan.shots[0].dialogue)
+    wantsNativeSpeech(job.plan.shots[0])
   )
   const seeded = seedUrl && !frameDropped
   job.shots[0] = {
@@ -1030,7 +1062,7 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
     job.secondsPerShot,
     job.resolution,
     prevFrame,
-    Boolean(job.plan.shots[idx].dialogue)
+    wantsNativeSpeech(job.plan.shots[idx])
   )
   job.shots[idx] = {
     name: job.plan.shots[idx].name,
@@ -1147,7 +1179,7 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           job.secondsPerShot,
           job.resolution,
           frameUrl,
-          Boolean(job.plan.shots[next].dialogue)
+          wantsNativeSpeech(job.plan.shots[next])
         )
         job.shots[next] = {
           name: job.plan.shots[next].name,
@@ -1380,7 +1412,7 @@ export async function retakeShot(
     job.secondsPerShot,
     job.resolution,
     seedUrl,
-    Boolean(job.plan.shots[index].dialogue)
+    wantsNativeSpeech(job.plan.shots[index])
   )
   job.shots[index] = {
     name: job.plan.shots[index].name,
