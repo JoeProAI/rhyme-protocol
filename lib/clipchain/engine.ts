@@ -598,10 +598,12 @@ function continuityBlock(omni: ContinuityReport | null, nano: ContinuityReport |
 // --------------------------------------------------------- video backend
 
 const VIDEO_MODEL = process.env.CLIPCHAIN_VIDEO_MODEL ?? 'bytedance/seedance-2.0-fast'
-// Audio-native model for shots that carry sound: video and voice generated
-// in ONE unified pass — built for multi-character lip-synced dialogue and
-// character consistency. The "work at it" lever after Chapter 1.
-const SPEECH_MODEL = process.env.CLIPCHAIN_SPEECH_MODEL ?? 'bytedance/seedance-1-5-pro'
+// Speech shots ride the same 2.0-fast as everything else: its native audio
+// already does lip-synced dialogue with dialogue-first prompts, and 1.5 Pro
+// (a generation older) traded away too much visual quality for it — a full
+// production A/B (Odyssey Ch1 vs Ch2) settled this. Env hook stays for
+// Seedance 2.5 when OpenRouter serves it.
+const SPEECH_MODEL = process.env.CLIPCHAIN_SPEECH_MODEL ?? 'bytedance/seedance-2.0-fast'
 
 async function submitShot(
   prompt: string,
