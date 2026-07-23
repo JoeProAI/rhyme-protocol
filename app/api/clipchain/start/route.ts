@@ -139,18 +139,15 @@ export async function POST(req: NextRequest) {
     // No card required: coupon invites run on the house (capped), everyone
     // else prepays a balance that only delivery deducts.
     let requiresPayment = false
+    let onHouse = false
     if (filmScale) {
       const priceCents = shotCount * secondsPerShot * rateForResolution(resolution)
-      let onHouse = false
       if (await hasFilmScaleCoupon(sessionId)) {
         // Invites are generous, not infinite: a few films on the house,
-        // then the same top-up path as everyone else.
-        const usedKey = `coupon:films:${sessionId}`
-        const used = (await redisGet<number>(usedKey)) ?? 0
-        if (used < COUPON_FILM_LIMIT) {
-          onHouse = true
-          await redisSet(usedKey, used + 1)
-        }
+        // then the same top-up path as everyone else. The slot is only
+        // consumed further down, once every gate has passed.
+        const used = (await redisGet<number>(`coupon:films:${sessionId}`)) ?? 0
+        if (used < COUPON_FILM_LIMIT) onHouse = true
       }
       if (!onHouse) {
         const payment = await getPaymentInfo(sessionId)
@@ -170,18 +167,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // The paygate: 1 free clip/day, share-to-X earns more, card = unlimited.
-    const gate = await checkUsage(sessionId, 'clip_generations')
-    if (!gate.allowed) {
-      return NextResponse.json(
-        {
-          error: 'limit',
-          message: gate.reason ?? 'Daily clip limit reached.',
-          upgrade_url: gate.upgrade_url ?? '/add-card',
-          shareType: 'clip_generations',
-        },
-        { status: 402 }
-      )
+    // The paygate: 1 free clip/day, share-to-X earns more. Invite-coupon
+    // house films answer to their own 3-film cap, not the community budget —
+    // the owner approved that spend when minting the code.
+    if (!onHouse) {
+      const gate = await checkUsage(sessionId, 'clip_generations')
+      if (!gate.allowed) {
+        return NextResponse.json(
+          {
+            error: 'limit',
+            message: gate.reason ?? 'Daily clip limit reached.',
+            upgrade_url: gate.upgrade_url ?? '/studio/board',
+            shareType: 'clip_generations',
+          },
+          { status: 402 }
+        )
+      }
     }
 
     // Chapter chaining: pull the previous chapter's closing frame as this
@@ -223,8 +224,14 @@ export async function POST(req: NextRequest) {
     await startJob(job)
     await saveJob(job)
 
-    // Count it at start — the expensive spend begins with shot 1.
+    // Count it at start — the expensive spend begins with shot 1. House
+    // films consume their invite slot only now, after a successful start.
     await trackUsage(sessionId, 'clip_generations', 1)
+    if (onHouse) {
+      const usedKey = `coupon:films:${sessionId}`
+      const used = (await redisGet<number>(usedKey)) ?? 0
+      await redisSet(usedKey, used + 1)
+    }
 
     const res = NextResponse.json(publicJob(job))
     if (isNewSession) {
