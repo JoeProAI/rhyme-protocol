@@ -798,10 +798,10 @@ async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<B
 
   try {
     const dlg = shot.dialogue
-    if (dlg && !dlg.offscreen) {
-      // Onscreen speech: KEEP Seedance's native audio — the mouth and the
-      // voice were generated together, so sync is perfect. Just normalize
-      // the stream so concat sees uniform aac.
+    if (!dlg || !dlg.offscreen) {
+      // Original sound: KEEP Seedance's native audio on every shot of a
+      // talking film — speech generated with the mouth, ambience (sea,
+      // wind, fire) everywhere else. The world keeps breathing.
       try {
         await execFileAsync(ff, [
           '-hide_banner', '-loglevel', 'error',
@@ -819,21 +819,34 @@ async function dubShot(job: ClipJob, index: number, videoBuf: Buffer): Promise<B
     }
     const voiceId = dlg?.offscreen ? voiceFor(job, dlg.character) : undefined
     if (dlg && voiceId) {
-      // Offscreen narration over silent footage: consistent cast voice,
-      // no mouth on camera to disagree with. Small lead-in breath.
+      // Offscreen narration MIXED over the shot's own ambience, falling
+      // back to narration-only if the footage came back silent.
       const lineBuf = await ttsLine(voiceId, dlg.line)
       const linePath = join(dir, `${job.id}-dub${index}.mp3`)
       cleanup.push(linePath)
       await writeFile(linePath, lineBuf)
-      await execFileAsync(ff, [
-        '-hide_banner', '-loglevel', 'error',
-        '-i', vidPath, '-i', linePath,
-        '-map', '0:v', '-map', '1:a',
-        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
-        '-af', 'adelay=400|400,apad',
-        '-t', String(dur),
-        '-y', outPath,
-      ])
+      try {
+        await execFileAsync(ff, [
+          '-hide_banner', '-loglevel', 'error',
+          '-i', vidPath, '-i', linePath,
+          '-filter_complex',
+          '[0:a]volume=0.45[amb];[1:a]adelay=400|400[voz];[amb][voz]amix=inputs=2:duration=first:normalize=0,apad[mix]',
+          '-map', '0:v', '-c:v', 'copy',
+          '-map', '[mix]', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+          '-t', String(dur),
+          '-y', outPath,
+        ])
+      } catch {
+        await execFileAsync(ff, [
+          '-hide_banner', '-loglevel', 'error',
+          '-i', vidPath, '-i', linePath,
+          '-map', '0:v', '-map', '1:a',
+          '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+          '-af', 'adelay=400|400,apad',
+          '-t', String(dur),
+          '-y', outPath,
+        ])
+      }
     } else {
       // Silent uniform bed (also covers dialogue with no cast voice —
       // better silent than the wrong voice).
@@ -1030,7 +1043,7 @@ export async function startJob(job: ClipJob): Promise<void> {
     job.secondsPerShot,
     job.resolution,
     seedUrl,
-    wantsNativeSpeech(job.plan.shots[0])
+    jobHasDialogue(job)
   )
   const seeded = seedUrl && !frameDropped
   job.shots[0] = {
@@ -1069,7 +1082,7 @@ async function resubmitCurrentShot(job: ClipJob, reason: string): Promise<void> 
     job.secondsPerShot,
     job.resolution,
     prevFrame,
-    wantsNativeSpeech(job.plan.shots[idx])
+    jobHasDialogue(job)
   )
   job.shots[idx] = {
     name: job.plan.shots[idx].name,
@@ -1186,7 +1199,7 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           job.secondsPerShot,
           job.resolution,
           frameUrl,
-          wantsNativeSpeech(job.plan.shots[next])
+          jobHasDialogue(job)
         )
         job.shots[next] = {
           name: job.plan.shots[next].name,
@@ -1419,7 +1432,7 @@ export async function retakeShot(
     job.secondsPerShot,
     job.resolution,
     seedUrl,
-    wantsNativeSpeech(job.plan.shots[index])
+    jobHasDialogue(job)
   )
   job.shots[index] = {
     name: job.plan.shots[index].name,

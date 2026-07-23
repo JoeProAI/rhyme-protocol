@@ -32,6 +32,8 @@ const BodySchema = z.object({
   camera: z.string().max(300).optional(),
   // Reclassify the shot's line as offscreen narration on this retake.
   offscreen: z.boolean().optional(),
+  // Remove the shot's line entirely — it becomes a pure ambient shot.
+  dropLine: z.boolean().optional(),
 })
 
 /**
@@ -92,7 +94,9 @@ export async function POST(req: NextRequest, { params }: { params: { jobId: stri
       await trackUsage(job.sessionId, 'clip_generations', 1)
     }
 
-    if (parsed.data.offscreen !== undefined) {
+    if (parsed.data.dropLine) {
+      delete job.plan.shots[parsed.data.shot - 1]?.dialogue
+    } else if (parsed.data.offscreen !== undefined) {
       const dlg = job.plan.shots[parsed.data.shot - 1]?.dialogue
       if (dlg) dlg.offscreen = parsed.data.offscreen
     }
