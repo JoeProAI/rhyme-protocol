@@ -133,6 +133,31 @@ export async function saveJob(job: ClipJob): Promise<void> {
   await redisSet(jobKey(job.id), job, JOB_TTL_SECONDS)
 }
 
+// ------------------------------------------------------ active job index
+// Generation must not depend on a browser staying alive: the cron ticks
+// every indexed job each minute. Client polls remain a bonus accelerant.
+
+const ACTIVE_KEY = 'clipchain:active'
+
+export async function registerActive(jobId: string): Promise<void> {
+  const list = (await redisGet<string[]>(ACTIVE_KEY)) ?? []
+  if (!list.includes(jobId)) {
+    list.push(jobId)
+    await redisSet(ACTIVE_KEY, list.slice(-200), JOB_TTL_SECONDS)
+  }
+}
+
+export async function unregisterActive(jobId: string): Promise<void> {
+  const list = (await redisGet<string[]>(ACTIVE_KEY)) ?? []
+  if (list.includes(jobId)) {
+    await redisSet(ACTIVE_KEY, list.filter((id) => id !== jobId), JOB_TTL_SECONDS)
+  }
+}
+
+export async function listActive(): Promise<string[]> {
+  return (await redisGet<string[]>(ACTIVE_KEY)) ?? []
+}
+
 // ------------------------------------------------------------ OpenRouter
 
 const OR_BASE = 'https://openrouter.ai/api/v1'
@@ -931,6 +956,7 @@ export async function startJob(job: ClipJob): Promise<void> {
     ? `Master frame set — shot 1/${job.plan.shots.length}: generating…`
     : `Shot 1/${job.plan.shots.length}: generating…`
   await saveJob(job)
+  await registerActive(job.id).catch(() => {})
 }
 
 /** Resubmit the job's current shot (same prompt, same seed frame). */
@@ -1134,6 +1160,7 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
           job.shots.length * job.secondsPerShot
         )
       }
+      await unregisterActive(job.id).catch(() => {})
     }
 
     job.tickErrors = 0
@@ -1160,6 +1187,7 @@ export async function tickJob(job: ClipJob): Promise<ClipJob> {
         job.refunded = true
         await refundUsage(job.sessionId, 'clip_generations', 1).catch(() => {})
       }
+      await unregisterActive(job.id).catch(() => {})
     } else {
       job.message = `Transient hiccup (${job.tickErrors}/${MAX_TICK_ERRORS}) — retrying: ${msg.slice(0, 120)}`
     }
@@ -1218,6 +1246,7 @@ export async function resumeJob(job: ClipJob): Promise<ClipJob> {
   job.status = 'generating'
   job.message = `Resumed — shot ${i + 1}/${job.plan.shots.length}: generating…`
   await saveJob(job)
+  await registerActive(job.id).catch(() => {})
   return job
 }
 
