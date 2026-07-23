@@ -598,6 +598,10 @@ function continuityBlock(omni: ContinuityReport | null, nano: ContinuityReport |
 // --------------------------------------------------------- video backend
 
 const VIDEO_MODEL = process.env.CLIPCHAIN_VIDEO_MODEL ?? 'bytedance/seedance-2.0-fast'
+// Audio-native model for shots that carry sound: video and voice generated
+// in ONE unified pass — built for multi-character lip-synced dialogue and
+// character consistency. The "work at it" lever after Chapter 1.
+const SPEECH_MODEL = process.env.CLIPCHAIN_SPEECH_MODEL ?? 'bytedance/seedance-1-5-pro'
 
 async function submitShot(
   prompt: string,
@@ -613,7 +617,7 @@ async function submitShot(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: VIDEO_MODEL,
+      model: withAudio ? SPEECH_MODEL : VIDEO_MODEL,
       prompt,
       duration,
       resolution,
