@@ -98,7 +98,8 @@ const SECONDS_PER_SHOT = 5
 const RESOLUTION = '720p'
 
 // Free tier stays small. Anything bigger — more shots or longer shots — is
-// film scale: card on file required, billed per shot-second on delivery.
+// film scale: prepaid balance (or coupon invite), deducted per shot-second
+// only on delivery. No card is ever stored.
 const FREE_MAX_SHOTS = 4
 const FREE_MAX_SECONDS = 5
 
